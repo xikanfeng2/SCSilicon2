@@ -16,7 +16,7 @@ To install wgsim, please refer to the README of [wgsim](https://github.com/lh3/w
 
 ## 2. Installation
 
-## Creation of python virtual env
+### Creation of python virtual env
 We recommend creating a virtual environment to run the scsilicon2(This step is optional!). You can use the following command to create a virtual python env:
 
 ```Bash
