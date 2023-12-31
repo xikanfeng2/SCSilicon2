@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="SCSilicon2",
-    version="1.0.0",
+    version="1.0.1",
     author="Xikang Feng",
     author_email="fxk@nwpu.edu.cn",
     description="SCSilicon2: a single-cell genomics simulator which cost-effectively simulates single-cell genomics reads with haplotype-specific copy number annotation.",
