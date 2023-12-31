@@ -231,4 +231,4 @@ simulator = scs.SCSilicon2()
 todo
 
 ## Help
-If you have any questions or require assistance using SCSilicon, please contact us with fxk@nwpu.edu.cn.
+If you have any questions or require assistance using SCSilicon2, please contact us with fxk@nwpu.edu.cn.
