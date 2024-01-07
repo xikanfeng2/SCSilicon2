@@ -36,7 +36,6 @@ default_role = "literal"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
 extensions = [
-    "myst_nb",
     "sphinx_copybutton",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
@@ -82,7 +81,6 @@ nb_merge_streams = True
 
 
 ogp_site_url = "https://scsilicon2.readthedocs.io/en/stable/"
-# ogp_image = "https://scanpy.readthedocs.io/en/stable/_static/Scanpy_Logo_BrightFG.svg"
 
 typehints_defaults = "braces"
 
