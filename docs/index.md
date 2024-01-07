@@ -10,6 +10,6 @@
 
 
 .. toctree::
-  tutorials
+  tutorials.md
 
 [Github]: https://github.com/xikanfeng2/SCSilicon2
