@@ -1,15 +1,17 @@
-.. include:: 
-  ../README.md
+```{include} ../README.md
+:end-line: 36
+```
 
-.. note::
-
-  This project is under active development.
+```{note}
+This project is under active development.
+```
 
 * Discuss development on [Github].
 * Get started by browsing {ref}`tutorials <tutorials>`.
 
 
-.. toctree::
-  tutorials.md
+```{toctree}
+tutorials
+```
 
 [Github]: https://github.com/xikanfeng2/SCSilicon2
