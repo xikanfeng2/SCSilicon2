@@ -1,7 +1,7 @@
 [![Stars](https://img.shields.io/github/stars/xikanfeng2/scsilicon2?logo=GitHub&color=yellow)](https://github.com/xikanfeng2/scsilicon2/stargazers)
 [![PyPI](https://img.shields.io/pypi/v/scsilicon2?logo=PyPI)](https://pypi.org/project/SCSilicon2/)
 [![Downloads](https://static.pepy.tech/badge/scsilicon2)](https://pepy.tech/project/scsilicon2)
-[![Docs](https://readthedocs.com/projects/icb-scsilicon2/badge/?version=latest)](https://scsilicon2.readthedocs.io)
+[![Docs](https://readthedocs.org/projects/scsilicon2/badge/)](https://scsilicon2.readthedocs.io)
 
 # SCSilicon2 - Single-Cell Genomics Simulator in Python
 
