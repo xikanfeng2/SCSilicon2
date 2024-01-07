@@ -38,7 +38,7 @@ extensions = [
     "sphinxext.opengraph",
 ]
 
-html_theme = "sphinx_book_theme"
+html_theme = "sphinx_rtd_theme"
 html_title = "SCSilicon2"
 html_theme_options = {
     "home_page_in_toc": True,
