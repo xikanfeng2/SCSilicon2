@@ -1,5 +1,4 @@
 ```{include} ../README.md
-:end-line: 36
 ```
 
 ```{note}
@@ -11,7 +10,7 @@ This project is under active development.
 
 
 ```{toctree}
-tutorials
+tutorials.md
 ```
 
 [Github]: https://github.com/xikanfeng2/SCSilicon2
