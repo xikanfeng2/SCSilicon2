@@ -13,7 +13,7 @@ release = "1.0.1"
 # -- General configuration
 extensions = [
     # read Markdown files
-    "myst_parser",
+    "myst_nb",
     "sphinx_design",
     # document CLI
     "sphinx_click",
