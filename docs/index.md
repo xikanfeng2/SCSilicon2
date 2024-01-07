@@ -14,7 +14,7 @@ This project is under active development.
 :maxdepth: 1
 
 tutorials
-release-notes/index
+release-notes
 contributors
 references
 ```
