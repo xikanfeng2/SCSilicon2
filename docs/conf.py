@@ -11,29 +11,36 @@ version = "1.0.1"
 release = "1.0.1"
 
 # -- General configuration
-
 extensions = [
-    'recommonmark',
-    'myst_nb',
-    'sphinx_markdown_tables',
-    'sphinx.ext.duration',
-    'sphinx.ext.doctest',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.intersphinx',
+    # read Markdown files
+    "myst_parser",
+    "sphinx_design",
+    # document CLI
+    "sphinx_click",
+    # document API
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.viewcode",
 ]
 
-intersphinx_mapping = {
-    'python': ('https://docs.python.org/3/', None),
-    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
+html_theme = "sphinx_book_theme"
+html_title = "SCSilicon2"
+html_theme_options = {
+    "home_page_in_toc": True,
+    "github_url": "https://github.com/executablebooks/rst-to-myst",
+    "repository_url": "https://github.com/executablebooks/rst-to-myst",
+    "use_issues_button": True,
+    "use_repository_button": True,
+    "repository_branch": "main",
+    "path_to_docs": "docs",
 }
-intersphinx_disabled_domains = ['std']
 
-templates_path = ['_templates']
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3.8", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/master", None),
+    "markdown_it": ("https://markdown-it-py.readthedocs.io/en/latest", None),
+}
 
-# -- Options for HTML output
-
-html_theme = 'sphinx_rtd_theme'
-
-# -- Options for EPUB output
-epub_show_urls = 'footnote'
+nitpick_ignore = [
+    ("py:class", name) for name in ["IO", "_io.StringIO", "docutils.nodes.document"]
+]
