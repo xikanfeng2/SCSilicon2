@@ -2,6 +2,7 @@
 
 # -- Project information
 from datetime import datetime
+from sphinx.application import Sphinx
 
 project = "SCSilicon2"
 author = "Xikang Feng"
@@ -41,6 +42,19 @@ extensions = [
 html_theme = "sphinx_rtd_theme"
 html_title = "SCSilicon2"
 
+def setup(app: Sphinx):
+    """App setup hook."""
+    app.add_config_value(
+        "recommonmark_config",
+        {
+            "auto_toc_tree_section": "Contents",
+            "enable_auto_toc_tree": True,
+            "enable_math": True,
+            "enable_inline_math": False,
+            "enable_eval_rst": True,
+        },
+        True,
+    )
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3.8", None),
