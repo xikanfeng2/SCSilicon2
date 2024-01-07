@@ -17,7 +17,7 @@ To install wgsim, please refer to the README of [wgsim](https://github.com/lh3/w
 ### Creation of python virtual env
 We recommend creating a virtual environment to run the scsilicon2(This step is optional!). You can use the following command to create a virtual python env:
 
-```Bash
+```shell
 # create a python virtual env in scsilicon2 folder
 python -m venv scsilicon2
 
@@ -30,13 +30,13 @@ deactivate
 
 ### Installation with pip
 To install with pip, run the following from a terminal:
-```Bash
+```shell
 pip install scsilicon2
 ```
 
 ### Installation from Github
 To clone the repository and install manually, run the following from a terminal:
-```Bash
+```shell
 git clone https://github.com/xikanfeng2/SCSilicon2.git
 cd SCSilicon2
 python setup.py install
@@ -45,7 +45,7 @@ python setup.py install
 ## 3. Quick start
 The following code runs SCSilicon.
 
-```Python
+```
 import scsilicon2 as scs
 
 # create SCSilicon2 object: ref_genome and snp_file are required, and outdir, clone_no, and cell_no are optional.
@@ -225,8 +225,6 @@ simulator = scs.SCSilicon2()
 * `error_rate`: float, optional, default: 0.02<br>
     The base error rate
 
-## Cite us
-todo
 
 ## Help
 If you have any questions or require assistance using SCSilicon2, please contact us with fxk@nwpu.edu.cn.

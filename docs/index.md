@@ -14,6 +14,9 @@ This project is under active development.
 :maxdepth: 1
 
 tutorials
+release-notes/index
+contributors
+references
 ```
 
 [Github]: https://github.com/xikanfeng2/SCSilicon2
