@@ -13,7 +13,7 @@ This project is under active development.
 :hidden: true
 :maxdepth: 1
 
-tutorials
+tutorials.md
 ```
 
 [Github]: https://github.com/xikanfeng2/SCSilicon2
