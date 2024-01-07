@@ -225,6 +225,3 @@ simulator = scs.SCSilicon2()
 * `error_rate`: float, optional, default: 0.02<br>
     The base error rate
 
-
-## Help
-If you have any questions or require assistance using SCSilicon2, please contact us with fxk@nwpu.edu.cn.
