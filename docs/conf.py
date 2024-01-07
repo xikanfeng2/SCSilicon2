@@ -44,9 +44,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx.ext.extlinks",
-    "git_ref",  # needs to be before scanpydoc.rtd_github_links
     "sphinx.ext.linkcode",
-    *[p.stem for p in (HERE / "extensions").glob("*.py") if p.stem not in {"git_ref"}],
 ]
 
 
