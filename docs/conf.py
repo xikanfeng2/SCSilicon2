@@ -5,9 +5,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import scsilicon2
-
-
 HERE = Path(__file__).parent
 sys.path[:0] = [str(HERE.parent), str(HERE / "extensions")]
 
@@ -28,11 +25,9 @@ project = "SCSilicon2"
 author = "Xikang Feng"
 repository_url = "https://github.com/xikanfeng2/SCSilicon2"
 copyright = f"{datetime.now():%Y}, Xikang Feng."
-version = scsilicon2.__version__
+version = "1.0.1"
 
 
-
-release = version
 
 # default settings
 templates_path = ["_templates"]

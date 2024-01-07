@@ -13,6 +13,3 @@ python:
     extra_requirements:
     - doc
     - leiden
-    - pandas
-    - matplotlib
-    - networkx
