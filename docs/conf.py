@@ -14,13 +14,22 @@ release = "1.0.1"
 extensions = [
     # read Markdown files
     "myst_nb",
-    "sphinx_design",
-    # document CLI
-    "sphinx_click",
-    # document API
+    "sphinx_copybutton",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.viewcode",
+    "sphinx.ext.doctest",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.extlinks",
+    "matplotlib.sphinxext.plot_directive",
+    "sphinx_autodoc_typehints",  # needs to be after napoleon
+    "git_ref",  # needs to be before scanpydoc.rtd_github_links
+    "scanpydoc",  # needs to be before sphinx.ext.linkcode
+    "sphinx.ext.linkcode",
+    "sphinx_design",
+    "sphinxext.opengraph",
 ]
 
 html_theme = "sphinx_book_theme"
