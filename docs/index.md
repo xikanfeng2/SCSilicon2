@@ -10,7 +10,10 @@ This project is under active development.
 
 
 ```{toctree}
-tutorials.md
+:hidden: true
+:maxdepth: 1
+
+tutorials
 ```
 
 [Github]: https://github.com/xikanfeng2/SCSilicon2
