@@ -3,7 +3,7 @@
 
 .. note::
 
-   This project is under active development.
+  This project is under active development.
 
 * Discuss development on [Github].
 * Get started by browsing {ref}`tutorials <tutorials>`.
