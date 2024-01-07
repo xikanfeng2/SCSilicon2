@@ -40,15 +40,7 @@ extensions = [
 
 html_theme = "sphinx_rtd_theme"
 html_title = "SCSilicon2"
-html_theme_options = {
-    "home_page_in_toc": True,
-    "github_url": "https://github.com/executablebooks/rst-to-myst",
-    "repository_url": "https://github.com/executablebooks/rst-to-myst",
-    "use_issues_button": True,
-    "use_repository_button": True,
-    "repository_branch": "main",
-    "path_to_docs": "docs",
-}
+
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3.8", None),
