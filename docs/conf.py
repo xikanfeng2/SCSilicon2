@@ -15,7 +15,6 @@ release = "1.0.1"
 extensions = [
     'recommonmark',
     'myst_nb',
-    'git_ref',
     'sphinx_markdown_tables',
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
