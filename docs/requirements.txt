@@ -9,3 +9,4 @@ sphinx-design
 sphinxext-opengraph
 sphinx-copybutton
 nbsphinx>=0.9
+matplotlib!=3.6.1
