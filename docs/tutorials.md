@@ -10,7 +10,11 @@
 
 All python packages will be automatically installed when you install SCSilicon2 if these packages are not included in your python library.
 
-To install wgsim, please refer to the README of [wgsim](https://github.com/lh3/wgsim). Please make sure the command 'wgsim' works in your command line.
+```{note}
+Please make sure the command `wgsim` works in your command line.
+```
+
+To install wgsim, please refer to the README of [wgsim](https://github.com/lh3/wgsim). 
 
 ## 2. Installation
 
