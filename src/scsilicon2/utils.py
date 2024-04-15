@@ -128,6 +128,14 @@ def random_cnv():
     # 使用choices函数进行随机选择，weights参数指定概率
     return random.choices(numbers, weights=probabilities)[0]
 
+def random_mirrored_cnv():
+    # 定义数字和对应的概率e
+    numbers = [2, 3, 4, 5, 6, 7, 8, 9]
+    probabilities = [0.05, 0.2, 0.3, 0.2, 0.1, 0.05, 0.05, 0.05]
+
+    # 使用choices函数进行随机选择，weights参数指定概率
+    return random.choices(numbers, weights=probabilities)[0]
+
 def assign_cells_to_clones(cell_no, clone_no):
         # Ensure at least one cell for each clone
         clones = [1] * clone_no

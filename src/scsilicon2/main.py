@@ -2,6 +2,7 @@ import os
 import copy
 import random
 import pandas as pd
+import numpy as np
 import subprocess
 import logging
 from . import utils
@@ -12,7 +13,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, HEHOratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02):
+    def __init__(self, ref_genome, snp_file, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.outdir = outdir
@@ -20,13 +21,19 @@ class SCSilicon2:
         self.cell_no = cell_no
         self.max_cnv_tree_depth = max_cnv_tree_depth
         self.bin_len = bin_len
-        self.HEHOratio = HEHOratio
+        self.HEHO_ratio = HEHO_ratio
         self.cnv_prob_cutoff = cnv_prob_cutoff
         self.clone_coverage = clone_coverage
         self.cell_coverage = cell_coverage
         self.reads_len = reads_len
         self.insertion_size = insertion_size
         self.error_rate = error_rate
+        self.WGD_no = WGD_no
+        self.WCL_no = WCL_no
+        self.CNL_LOH_no = CNL_LOH_no
+        self.CNN_LOH_no = CNN_LOH_no
+        self.GOH_no = GOH_no
+        self.mirrored_cnv_no = mirrored_cnv_no
         self._check_params()
         self.samples = dict.fromkeys(['cell' + str(i+1) for i in range(self.cell_no)])
         for sample in self.samples:
@@ -57,7 +64,7 @@ class SCSilicon2:
         utils.check_positive(max_cnv_tree_depth=self.max_cnv_tree_depth)
         utils.check_int(bin_len=self.bin_len)
         utils.check_positive(bin_len=self.bin_len)
-        utils.check_between(0,1,HEHOratio=self.HEHOratio)
+        utils.check_between(0,1,HEHO_ratio=self.HEHO_ratio)
         utils.check_between(0,1,cnv_prob_cutoff=self.cnv_prob_cutoff)
         utils.check_positive(clone_coverage=self.clone_coverage)
         utils.check_positive(cell_coverage=self.cell_coverage)
@@ -66,7 +73,18 @@ class SCSilicon2:
         utils.check_int(insertion_size=self.insertion_size)
         utils.check_positive(insertion_size=self.insertion_size)
         utils.check_between(0,1,error_rate=self.error_rate)
-
+        utils.check_int(insertion_size=self.WGD_no)
+        utils.check_positive(insertion_size=self.WGD_no)
+        utils.check_int(insertion_size=self.WCL_no)
+        utils.check_positive(insertion_size=self.WCL_no)
+        utils.check_int(insertion_size=self.CNL_LOH_no)
+        utils.check_positive(insertion_size=self.CNL_LOH_no)
+        utils.check_int(insertion_size=self.CNN_LOH_no)
+        utils.check_positive(insertion_size=self.CNN_LOH_no)
+        utils.check_int(insertion_size=self.GOH_no)
+        utils.check_positive(insertion_size=self.GOH_no)
+        utils.check_int(insertion_size=self.mirrored_cnv_no)
+        utils.check_positive(insertion_size=self.mirrored_cnv_no)
     def set_params(self, **params):
         """Set the parameters of SCSilicon2.
 
@@ -97,8 +115,11 @@ class SCSilicon2:
         bin_len: int, optional, default: 500000
             The fixed bin length
         
-        HEHOratio: float, optional, default: 0.5
+        HEHO_ratio: float, optional, default: 0.5
             Ratio of heterozygous SNPs
+
+        WGD_no: int, optional, default: 0
+
         
         cnv_prob_cutoff: float, optional, default: 0.8
             The cutoff probability of a bin undergoing CNV, if random probability is larger than cutoff, CNV happens
@@ -125,47 +146,65 @@ class SCSilicon2:
 
         # parameters
         if 'ref_genome' in params and params['ref_genome'] != self.ref_genome:
-            self.cell_no = params['ref_genome']
+            self.ref_genome = params['ref_genome']
             del params['ref_genome']
         if 'snp_file' in params and params['snp_file'] != self.snp_file:
             self.snp_file = params['snp_file']
             del params['snp_file']
         if 'outdir' in params and params['outdir'] != self.outdir:
-            self.snp_file = params['outdir']
+            self.outdir = params['outdir']
             del params['outdir']
         if 'clone_no' in params and params['clone_no'] != self.clone_no:
-            self.snp_file = params['clone_no']
+            self.clone_no = params['clone_no']
             del params['clone_no']
         if 'cell_no' in params and params['cell_no'] != self.cell_no:
-            self.snp_file = params['cell_no']
+            self.cell_no = params['cell_no']
             del params['cell_no']
         if 'max_cnv_tree_depth' in params and params['max_cnv_tree_depth'] != self.max_cnv_tree_depth:
-            self.snp_file = params['max_cnv_tree_depth']
+            self.max_cnv_tree_depth = params['max_cnv_tree_depth']
             del params['max_cnv_tree_depth']
         if 'bin_len' in params and params['bin_len'] != self.bin_len:
             self.bin_len = params['bin_len']
             del params['bin_len']
-        if 'HEHOratio' in params and params['HEHOratio'] != self.HEHOratio:
-            self.HEHOratio = params['HEHOratio']
-            del params['HEHOratio']
+        if 'HEHO_ratio' in params and params['HEHO_ratio'] != self.HEHO_ratio:
+            self.HEHO_ratio = params['HEHO_ratio']
+            del params['HEHO_ratio']
         if 'cnv_prob_cutoff' in params and params['cnv_prob_cutoff'] != self.cnv_prob_cutoff:
-            self.HEHOratio = params['cnv_prob_cutoff']
+            self.cnv_prob_cutoff = params['cnv_prob_cutoff']
             del params['cnv_prob_cutoff']
         if 'clone_coverage' in params and params['clone_coverage'] != self.clone_coverage:
-            self.cluster_no = params['clone_coverage']
+            self.clone_coverage = params['clone_coverage']
             del params['clone_coverage']
         if 'cell_coverage' in params and params['cell_coverage'] != self.cell_coverage:
-            self.normal_frac = params['cell_coverage']
+            self.cell_coverage = params['cell_coverage']
             del params['cell_coverage']
         if 'reads_len' in params and params['reads_len'] != self.reads_len:
-            self.noise_frac = params['reads_len']
+            self.reads_len = params['reads_len']
             del params['reads_len']
         if 'insertion_size' in params and params['insertion_size'] != self.insertion_size:
-            self.noise_frac = params['insertion_size']
+            self.insertion_size = params['insertion_size']
             del params['insertion_size']
         if 'error_rate' in params and params['error_rate'] != self.error_rate:
-            self.noise_frac = params['error_rate']
+            self.error_rate = params['error_rate']
             del params['error_rate']
+        if 'WGD_no' in params and params['WGD_no'] != self.WGD_no:
+            self.WGD_no = params['WGD_no']
+            del params['WGD_no']
+        if 'WCL_no' in params and params['WCL_no'] != self.WCL_no:
+            self.WCL_no = params['WCL_no']
+            del params['WCL_no']
+        if 'CNL_LOH_no' in params and params['CNL_LOH_no'] != self.CNL_LOH_no:
+            self.CNL_LOH_no = params['CNL_LOH_no']
+            del params['CNL_LOH_no']
+        if 'CNN_LOH_no' in params and params['CNN_LOH_no'] != self.CNN_LOH_no:
+            self.CNN_LOH_no = params['CNN_LOH_no']
+            del params['CNN_LOH_no']
+        if 'GOH_no' in params and params['GOH_no'] != self.GOH_no:
+            self.GOH_no = params['GOH_no']
+            del params['GOH_no']
+        if 'mirrored_cnv_no' in params and params['mirrored_cnv_no'] != self.mirrored_cnv_no:
+            self.mirrored_cnv_no = params['mirrored_cnv_no']
+            del params['mirrored_cnv_no']
         self._check_params()
         self.get_params()
         return self
@@ -210,7 +249,7 @@ class SCSilicon2:
                                     a = line[sindex]
                                     mline = line
                                     pline = line
-                                    if random.random() < self.HEHOratio: #Heterozygous
+                                    if random.random() < self.HEHO_ratio: #Heterozygous
                                         if random.random() < 0.5:
                                             a1 = allele1.lower() if a.islower() else allele1.upper()
                                             a2 = allele2.lower() if a.islower() else allele2.upper()
@@ -296,14 +335,178 @@ class SCSilicon2:
                     end = bin_len * count            
         return ref
 
-    def _generate_cnv_profile_for_each_clone(self, root, ref):
+    def _generate_cnv_profile_for_each_clone(self, root, ref, m_fasta, p_fasta):
         stack = [root]
-        changes = []
         cutoff = self.cnv_prob_cutoff
+        changes = []
+        wgd_chroms = []
+        wcl_chroms = []
+        all_chroms = np.unique(ref['Chromosome'])
+        if self.WGD_no + self.WCL_no > len(all_chroms):
+            raise Exception("The sum of WGD_no and WCL_no should be less or equal to the total number of chromosomes!")
+
+        # store maternal and paternal genome to dict
+        maternal_genome = {}
+        paternal_genome = {}
+        with open(m_fasta, 'r') as input:
+            chrom = None
+            for line in input:
+                line = line.strip()
+                if line.startswith('>'):
+                    chrom = line.strip()[1:].split()[0]
+                    maternal_genome[chrom] = ''
+                else:
+                    maternal_genome[chrom] += line
+        with open(p_fasta, 'r') as input:
+            chrom = None
+            for line in input:
+                line = line.strip()
+                if line.startswith('>'):
+                    chrom = line.strip()[1:].split()[0]
+                    paternal_genome[chrom] = ''
+                else:
+                    paternal_genome[chrom] += line
+        
+        # select WGD and WCL chromosomes
+        random_chroms = random.choices(all_chroms, k=self.WGD_no+self.WCL_no)
+        wgd_chroms = random_chroms[:self.WGD_no]
+        wcl_chroms = random_chroms[self.WGD_no:]
+    
+        # select the position for CNL_LOH, CNN_LOH, GOH and mirrored cnv
+        random_bins = random.sample(range(0, ref.shape[0]), self.CNL_LOH_no + self.CNN_LOH_no + self.GOH_no + self.mirrored_cnv_no)
+        cnl_loh_bins = random_bins[:self.CNL_LOH_no]
+        cnn_loh_bins = random_bins[self.CNL_LOH_no:self.CNL_LOH_no + self.CNN_LOH_no]
+        goh_bins = random_bins[self.CNL_LOH_no + self.CNN_LOH_no:self.CNL_LOH_no + self.CNN_LOH_no + self.GOH_no]
+        mirrored_cnv_bins = random_bins[self.CNL_LOH_no + self.CNN_LOH_no + self.GOH_no:]
+
+
         while stack:
             clone = stack.pop()
             if clone.parent == None: # root node clone0
+                mirrored_cnv_flag = False
                 for i in range(ref.shape[0]):
+                    # if flag is ture, the previous bin has been process as mirrored cnv bin and skip it.
+                    if mirrored_cnv_flag:
+                        mirrored_cnv_flag = False
+                        continue
+
+                    current_chrom = ref['Chromosome'][i]
+                    start = ref['Start'][i]
+                    end = ref['End'][i]
+                    m_sequence = maternal_genome[current_chrom][start-1:end]
+                    p_sequence = paternal_genome[current_chrom][start-1:end]
+
+                    # TODO: 1.父本母本是否同时发生WGD或者WCL；2.WGD的数据是随机还是直接2，目前设定为2 3.非root节点该如何处理
+                    # handle WGD and WCL
+                    if current_chrom in wgd_chroms:
+                        changes.append(['normal',clone.name,'maternal','WGD',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(2)])
+                        changes.append(['normal',clone.name,'paternal','WGD',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(2)])
+                        clone.maternal_cnvs.append(2)
+                        clone.paternal_cnvs.append(2)
+                        continue
+                    if current_chrom in wcl_chroms:
+                        changes.append(['normal',clone.name,'maternal','WCL',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                        changes.append(['normal',clone.name,'paternal','WCL',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                        clone.maternal_cnvs.append(0)
+                        clone.paternal_cnvs.append(0)
+                        continue
+
+                    # handle CNL_LOH: 1:0 or 0:1
+                    if i in cnl_loh_bins:
+                        # check heterozygosity
+                        if m_sequence != p_sequence:
+                            if random.random() < 0.5: # m:p = 1:0
+                                changes.append(['normal',clone.name,'paternal','CNL_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                                clone.maternal_cnvs.append(1)
+                                clone.paternal_cnvs.append(0)
+                            else: # m:p = 0:1
+                                changes.append(['normal',clone.name,'maternal','CNL_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                                clone.maternal_cnvs.append(0)
+                                clone.paternal_cnvs.append(1)
+                            continue
+                        else:
+                            clone.maternal_cnvs.append(1)
+                            clone.paternal_cnvs.append(1)
+                            continue
+                    
+                    # handle CNN_LOH: 2:0 or o:2
+                    if i in cnn_loh_bins:
+                        # check heterozygosity
+                        if m_sequence != p_sequence:
+                            if random.random() < 0.5: # m:p = 2:0
+                                changes.append(['normal',clone.name,'maternal','CNN_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(2)])
+                                changes.append(['normal',clone.name,'paternal','CNN_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                                clone.maternal_cnvs.append(2)
+                                clone.paternal_cnvs.append(0)
+                            else: # m:p = 0:1
+                                changes.append(['normal',clone.name,'maternal','CNN_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                                changes.append(['normal',clone.name,'paternal','CNN_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(2)])
+                                clone.maternal_cnvs.append(0)
+                                clone.paternal_cnvs.append(2)
+                            continue
+                        else:
+                            clone.maternal_cnvs.append(1)
+                            clone.paternal_cnvs.append(1)
+                            continue
+                    
+                    # TODO: GOH是否需要
+                    # handle GOH
+                    if i in goh_bins:
+                        # check heterozygosity
+                        if m_sequence == p_sequence:
+                            if random.random() < 0.5: # m:p = 2:0
+                                changes.append(['normal',clone.name,'maternal','CNN_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(2)])
+                                changes.append(['normal',clone.name,'paternal','CNN_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                                clone.maternal_cnvs.append(2)
+                                clone.paternal_cnvs.append(0)
+                            else: # m:p = 0:1
+                                changes.append(['normal',clone.name,'maternal','CNN_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                                changes.append(['normal',clone.name,'paternal','CNN_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(2)])
+                                clone.maternal_cnvs.append(0)
+                                clone.paternal_cnvs.append(2)
+                            continue
+                        else:
+                            clone.maternal_cnvs.append(1)
+                            clone.paternal_cnvs.append(1)
+                            continue
+                    
+                    # handle mirrored cnv
+                    if i in mirrored_cnv_bins:
+                        # make sure the next bin located in same chromosome
+                        if ref['Chromosome'][i] != ref['Chromosome'][i+1]:
+                            clone.maternal_cnvs.append(1)
+                            clone.paternal_cnvs.append(1)
+                            continue
+
+                        # generate mirrored cnv number
+                        total_cnv = utils.random_mirrored_cnv()
+                        cnv1 = random.randint(total_cnv)
+                        while cnv1 == total_cnv/2:
+                            cnv1 = random.randint(total_cnv)
+                        cnv2 = total_cnv - cnv2
+                        if random.random() < 0.5: # m:p = cnv1:cnv2
+                            changes.append(['normal',clone.name,'maternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(cnv1)])
+                            changes.append(['normal',clone.name,'maternal','mirrored cnv',ref['Chromosome'][i+1]+':'+str(ref['Start'][i+1])+'-'+str(ref['End'][i+1]),'1->'+str(cnv2)])
+                            changes.append(['normal',clone.name,'paternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(cnv2)])
+                            changes.append(['normal',clone.name,'paternal','mirrored cnv',ref['Chromosome'][i+1]+':'+str(ref['Start'][i+1])+'-'+str(ref['End'][i+1]),'1->'+str(cnv1)])
+                            clone.maternal_cnvs.append(cnv1)
+                            clone.paternal_cnvs.append(cnv2)
+                            clone.maternal_cnvs.append(cnv2)
+                            clone.paternal_cnvs.append(cnv1)
+                        else: # m:p = cnv2:cnv1
+                            changes.append(['normal',clone.name,'maternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(cnv2)])
+                            changes.append(['normal',clone.name,'maternal','mirrored cnv',ref['Chromosome'][i+1]+':'+str(ref['Start'][i+1])+'-'+str(ref['End'][i+1]),'1->'+str(cnv1)])
+                            changes.append(['normal',clone.name,'paternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(cnv1)])
+                            changes.append(['normal',clone.name,'paternal','mirrored cnv',ref['Chromosome'][i+1]+':'+str(ref['Start'][i+1])+'-'+str(ref['End'][i+1]),'1->'+str(cnv2)])
+                            clone.maternal_cnvs.append(cnv2)
+                            clone.paternal_cnvs.append(cnv1)
+                            clone.maternal_cnvs.append(cnv1)
+                            clone.paternal_cnvs.append(cnv2)
+                        mirrored_cnv_flag = True
+                        continue
+                    
+                    # TODO: 这里生成的cnv有可能包含上述情况，需不需要一一筛除
+                    # generate random cnv
                     if random.random() > cutoff: # 20% cnv
                         m_cnv = utils.random_cnv()
                         p_cnv = utils.random_cnv()
@@ -325,6 +528,7 @@ class SCSilicon2:
                         clone.maternal_cnvs.append(1)
                         clone.paternal_cnvs.append(1)
             else:
+                # TODO：如何处理继承关系
                 # first inherit from parent
                 clone.maternal_cnvs = copy.deepcopy(clone.parent.maternal_cnvs)
                 clone.paternal_cnvs = copy.deepcopy(clone.parent.paternal_cnvs)
@@ -383,48 +587,42 @@ class SCSilicon2:
         # merged_ref = pd.DataFrame(merged_rows).reset_index(drop=True)
         merged_ref = pd.DataFrame(merged_rows)
 
-        return merged_ref, changes
+        return merged_ref, changes, maternal_genome, paternal_genome
 
-    def _generate_fasta_for_each_clone(self, root, ref, m_fasta, p_fasta, outdir):
+    def _generate_fasta_for_each_clone(self, root, ref, changes, maternal_genome, paternal_genome, outdir):
         stack = [root]
-        maternal_genome = {}
-        paternal_genome = {}
 
         while stack:
             clone = stack.pop()
             clone.maternal_fasta = os.path.join(outdir, clone.name+'_maternal.fasta')
             clone.paternal_fasta = os.path.join(outdir, clone.name+'_paternal.fasta')
-            with open(m_fasta, 'r') as input:
-                chrom = None
-                for line in input:
-                    line = line.strip()
-                    if line.startswith('>'):
-                        chrom = line.strip()[1:].split()[0]
-                        maternal_genome[chrom] = ''
-                    else:
-                        maternal_genome[chrom] += line
-            with open(p_fasta, 'r') as input:
-                chrom = None
-                for line in input:
-                    line = line.strip()
-                    if line.startswith('>'):
-                        chrom = line.strip()[1:].split()[0]
-                        paternal_genome[chrom] = ''
-                    else:
-                        paternal_genome[chrom] += line
+            
             with open(clone.maternal_fasta, 'w') as m_output:
                 with open(clone.paternal_fasta, 'w') as p_output:
                     for chrom in maternal_genome.keys():
                         m_output.write('>'+chrom+'\n')
                         p_output.write('>'+chrom+'\n')
                         chrom_ref = ref[ref['Chromosome'] == chrom]
+                        chrom_changes = changes[changes['Chromosome'] == chrom]
                         for index, row in chrom_ref.iterrows():
                             m_cnv = int(row[clone.name+'_maternal_cnvs'])
                             p_cnv = int(row[clone.name+'_paternal_cnvs'])
                             start = int(row['Start'])
                             end = int(row['End'])
-                            m_sequence = maternal_genome[chrom][start-1:end] * m_cnv
-                            p_sequence = paternal_genome[chrom][start-1:end] * p_cnv
+
+                            # handle CNN_LOH
+                            segment = chrom + ':' + str(start) + '-' + str(end)
+                            cnv_type = chrom_changes[(chrom_changes['Child']==clone.name) & (chrom_changes['Segment']==segment)]['Type'][0]
+                            if cnv_type == 'CNN_LOH':
+                                if m_cnv == 2:
+                                    m_sequence = maternal_genome[chrom][start-1:end] * 1
+                                    p_sequence = maternal_genome[chrom][start-1:end] * 1
+                                else:
+                                    m_sequence = paternal_genome[chrom][start-1:end] * 1
+                                    p_sequence = paternal_genome[chrom][start-1:end] * 1
+                            else:   
+                                m_sequence = maternal_genome[chrom][start-1:end] * m_cnv
+                                p_sequence = paternal_genome[chrom][start-1:end] * p_cnv
                             m_output.write(m_sequence)
                             p_output.write(p_sequence)
                             clone.maternal_fasta_length += len(m_sequence)
@@ -458,6 +656,7 @@ class SCSilicon2:
         columns = ['Parent', 'Child', 'Haplotype', 'Type', 'Segment', 'Change']
         change_df = pd.DataFrame(data=changes, columns=columns)
         change_df.to_csv(os.path.join(outdir, 'changes.csv'), index=False)
+        return change_df
 
     def _merge_fasta_for_each_clone(self, root, outdir):
         # merge fasta for each clone
@@ -575,12 +774,12 @@ class SCSilicon2:
         # generate cnv for each clone
         logging.info('Generating CNV profile for each clone...')
         ref = self._split_chr_to_bins(chrom_sizes, 'all')
-        new_ref, changes = self._generate_cnv_profile_for_each_clone(root, ref)
-        self._out_cnv_profile(root, new_ref, changes, profile_dir)
+        new_ref, changes, maternal_genome, paternal_genome = self._generate_cnv_profile_for_each_clone(root, ref, m_fasta, p_fasta)
+        new_changes = self._out_cnv_profile(root, new_ref, changes, profile_dir)
 
         # generate fasta file for each clone
         logging.info('Generating fasta file for each clone...')
-        self._generate_fasta_for_each_clone(root, new_ref, m_fasta, p_fasta, fasta_dir)
+        self._generate_fasta_for_each_clone(root, new_ref, new_changes, maternal_genome, paternal_genome, fasta_dir)
 
         # add normal to the tree
         normal = random_tree.TreeNode('normal')
