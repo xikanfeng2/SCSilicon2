@@ -18,6 +18,8 @@ class TreeNode:
         self.parent = None
         self.ratio = None
         self.cell_no = None
+        self.depth = None
+        self.changes = []
 
 def draw_tree(node, pos=None, level=0, width=2., vert_gap=0.2, xcenter=0.5):
     if pos is None:
@@ -91,7 +93,12 @@ def rename_tree_nodes(root, start_value=0):
         node, depth = stack.pop()
 
         # Rename the current node
-        node.name = 'clone' + str(current_value)
+        if depth == 0:
+            node.name = 'normal'
+            continue
+        else:
+            node.name = 'clone' + str(current_value)
+        node.depth = depth
         current_value += 1
 
         # Add children to the stack with increased depth

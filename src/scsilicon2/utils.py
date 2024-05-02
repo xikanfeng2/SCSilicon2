@@ -104,6 +104,12 @@ def check_in(choices, **params):
                 "{} value {} not recognized. Choose from {}".format(
                     p, params[p], choices))
 
+def randomSNPList(chrom_sizes, snp_ratio):
+    snpList = {}
+    for chrom, chrom_len in chrom_sizes.items():
+        snpList[chrom] = {snp : set(random.sample(['A','T','C','G'], 2)) for snp in random.sample(range(chrom_len), int(round(chrom_len * snp_ratio)))}
+    return snpList
+
 def parseSNPList(snpfile):
     snpList = {}
     with open(snpfile, 'r') as input:
@@ -122,8 +128,8 @@ def parseSNPList(snpfile):
 
 def random_cnv():
     # 定义数字和对应的概率e
-    numbers = [0, 1, 2, 3, 4, 5]
-    probabilities = [0.05, 0.3, 0.25, 0.2, 0.15, 0.05]
+    numbers = [0, 2, 3, 4, 5]
+    probabilities = [0.05, 0.4, 0.3, 0.2, 0.05]
 
     # 使用choices函数进行随机选择，weights参数指定概率
     return random.choices(numbers, weights=probabilities)[0]
@@ -132,6 +138,22 @@ def random_mirrored_cnv():
     # 定义数字和对应的概率e
     numbers = [2, 3, 4, 5, 6, 7, 8, 9]
     probabilities = [0.05, 0.2, 0.3, 0.2, 0.1, 0.05, 0.05, 0.05]
+
+    # 使用choices函数进行随机选择，weights参数指定概率
+    return random.choices(numbers, weights=probabilities)[0]
+
+def random_WGD():
+    # 定义数字和对应的概率e
+    numbers = [2, 3, 4, 5]
+    probabilities = [0.5, 0.3, 0.15, 0.05]
+
+    # 使用choices函数进行随机选择，weights参数指定概率
+    return random.choices(numbers, weights=probabilities)[0]
+
+def random_CNL():
+    # 定义数字和对应的概率e
+    numbers = [1, 2, 3, 4, 5]
+    probabilities = [0.4, 0.3, 0.15, 0.1, 0.05]
 
     # 使用choices函数进行随机选择，weights参数指定概率
     return random.choices(numbers, weights=probabilities)[0]
