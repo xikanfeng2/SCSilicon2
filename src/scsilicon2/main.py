@@ -1094,17 +1094,9 @@ class SCSilicon2:
         self._merge_fasta_for_each_clone(root, fasta_dir)
 
         # generate fastq for each clone
-        # logging.info('Generating fastq file for each clone...')
-        # self._generate_fastq(root, fastq_dir)
+        logging.info('Generating fastq file for each clone...')
+        self._generate_fastq(root, fastq_dir)
 
-        # # sampling
-        # logging.info('Generating fastq file for cells of each clone...')
-        # self._downsampling_fastq(root, fastq_dir)
-
-         # output tree graph and newick
-        logging.info('Drawing tree graph...')
-        random_tree.draw_tree_to_pdf(root, os.path.join(profile_dir, 'tree.pdf'))
-        tree_newick = os.path.join(profile_dir, 'tree.newick')
-        result = random_tree.tree_to_newick(root)
-        with open(tree_newick, 'w') as output:
-            output.write(result)
+        # sampling
+        logging.info('Generating fastq file for cells of each clone...')
+        self._downsampling_fastq(root, fastq_dir)
