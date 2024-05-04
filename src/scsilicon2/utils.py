@@ -126,6 +126,14 @@ def parseSNPList(snpfile):
             snpList[chrom][pos] = (allele1, allele2)
     return snpList
 
+def parseIgnoreList(ignorefile):
+    ignorelist = []
+    with open(ignorefile, 'r') as input:
+        for line in input:
+            if line != '':
+                ignorelist.append(line.strip())
+    return ignorelist
+
 def random_cnv():
     # 定义数字和对应的概率e
     numbers = [0, 2, 3, 4, 5]

@@ -13,9 +13,10 @@ logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.0000333, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.0000333, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
+        self.ignore_file = ignore_file
         self.outdir = outdir
         self.clone_no = clone_no
         self.cell_no = cell_no
@@ -36,6 +37,7 @@ class SCSilicon2:
         self.GOH_no = GOH_no
         self.mirrored_cnv_no = mirrored_cnv_no
         self.chrom_sizes = {}
+        self.ignore_list = []
         self._check_params()
         self.samples = dict.fromkeys(['cell' + str(i+1) for i in range(self.cell_no)])
         for sample in self.samples:
@@ -154,6 +156,9 @@ class SCSilicon2:
         if 'snp_file' in params and params['snp_file'] != self.snp_file:
             self.snp_file = params['snp_file']
             del params['snp_file']
+        if 'ignore_file' in params and params['ignore_file'] != self.ignore_file:
+            self.ignore_file = params['ignore_file']
+            del params['ignore_file']
         if 'outdir' in params and params['outdir'] != self.outdir:
             self.outdir = params['outdir']
             del params['outdir']
@@ -216,16 +221,21 @@ class SCSilicon2:
         print(vars(self))
 
     def _get_chrom_sizes(self):
+        if self.ignore_file:
+            self.ignore_list = utils.parseIgnoreList(self.ignore_file)
+
         with open(self.ref_genome, 'r') as refinput:
             chrom = None
             for line in refinput:
                 line = line.strip()
                 if line.startswith('>'):
                     chrom = line.strip()[1:].split()[0]
-                    self.chrom_sizes[chrom] = 0
+                    if chrom not in self.ignore_list:
+                        self.chrom_sizes[chrom] = 0
                 else:
                     linelen = len(line.strip())
-                    self.chrom_sizes[chrom] += linelen
+                    if chrom not in self.ignore_list:
+                        self.chrom_sizes[chrom] += linelen
 
     def _buildGenome(self, maternalFasta, paternalFasta, phaselist):
         if self.snp_file == None:
@@ -244,16 +254,16 @@ class SCSilicon2:
                     for line in refinput:
                         line = line.strip()
                         if line.startswith('>'):
-                            if chrom:
+                            if chrom and chrom not in self.ignore_list:
                                 out1.write('\n')
                                 out2.write('\n')
+                            chrom = line.strip()[1:].split()[0]
+                            if chrom in self.ignore_list:
+                                continue
                             out1.write(line+'\n')
                             out2.write(line+'\n')
-                            chrom = line.strip()[1:].split()[0]
                             # m_genome[chrom] = ''
                             # p_genome[chrom] = ''
-                            print(allsnps.keys())
-                            print(chrom)
                             snps = allsnps[chrom]
                             snppos = sorted(snps.keys())
                             # print(snppos)
@@ -261,6 +271,8 @@ class SCSilicon2:
                             allele1 = snps[currentsnppos][0]
                             allele2 = snps[currentsnppos][1]
                         else:
+                            if chrom in self.ignore_list:
+                                continue
                             linelen = len(line.strip())
                             if int(currentsnppos) > currentpos and int(currentsnppos) <= currentpos + linelen:
                                 while int(currentsnppos) > currentpos and int(currentsnppos) <= currentpos + linelen:
