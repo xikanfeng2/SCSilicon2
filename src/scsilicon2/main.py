@@ -773,7 +773,7 @@ class SCSilicon2:
                                     changes.pop()
                                 changes.append([clone.parent.name,clone.name,'maternal','mirrored cnv',ref['Chromosome'][i-1]+':'+str(ref['Start'][i-1])+'-'+str(ref['End'][i-1]),str(clone.parent.maternal_cnvs[i-1])+'->'+str(clone.maternal_cnvs[i-1])])
                                 changes.append([clone.parent.name,clone.name,'maternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),str(m_parent_cnv)+'->'+str(m_cnv)])
-                                changes.append([clone.parent.name,clone.name,'paternal','mirrored cnv',ref['Chromosome'][i-1]+':'+str(ref['Start'][i-1])+'-'+str(ref['End'][i-1]),str(clone.parent.paternal_cnvs[i-1])+'->'+str(clone.paternal_cnvs[i-1])]])
+                                changes.append([clone.parent.name,clone.name,'paternal','mirrored cnv',ref['Chromosome'][i-1]+':'+str(ref['Start'][i-1])+'-'+str(ref['End'][i-1]),str(clone.parent.paternal_cnvs[i-1])+'->'+str(clone.paternal_cnvs[i-1])])
                                 changes.append([clone.parent.name,clone.name,'paternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),str(p_parent_cnv)+'->'+str(p_cnv)])
                                 clone.changes[i-1] = 'mirrored cnv'
                                 clone.changes[i] = 'mirrored cnv'
