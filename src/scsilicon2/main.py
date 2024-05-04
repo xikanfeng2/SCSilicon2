@@ -233,9 +233,10 @@ class SCSilicon2:
                     if chrom not in self.ignore_list:
                         self.chrom_sizes[chrom] = 0
                 else:
+                    if chrom in self.ignore_list:
+                        continue
                     linelen = len(line.strip())
-                    if chrom not in self.ignore_list:
-                        self.chrom_sizes[chrom] += linelen
+                    self.chrom_sizes[chrom] += linelen
 
     def _buildGenome(self, maternalFasta, paternalFasta, phaselist):
         if self.snp_file == None:
