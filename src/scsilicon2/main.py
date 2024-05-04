@@ -1072,13 +1072,10 @@ class SCSilicon2:
         root.maternal_fasta_length = normal_fasta_length
         root.paternal_fasta_length = normal_fasta_length
 
-        # output tree graph and newick
+        # output tree graph
         logging.info('Drawing tree graph...')
         random_tree.draw_tree_to_pdf(root, os.path.join(profile_dir, 'tree.pdf'))
-        tree_newick = os.path.join(profile_dir, 'tree.newick')
-        result = random_tree.tree_to_newick(root)
-        with open(tree_newick, 'w') as output:
-            output.write(result)
+        
 
         # generate cnv for each clone
         logging.info('Generating CNV profile for each clone...')
@@ -1111,3 +1108,9 @@ class SCSilicon2:
         # sampling
         logging.info('Generating fastq file for cells of each clone...')
         self._downsampling_fastq(root, fastq_dir)
+
+        # output tree newick
+        tree_newick = os.path.join(profile_dir, 'tree.newick')
+        result = random_tree.tree_to_newick(root)
+        with open(tree_newick, 'w') as output:
+            output.write(result)
