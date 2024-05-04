@@ -13,7 +13,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.001, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
+    def __init__(self, ref_genome, snp_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.0000333, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.outdir = outdir
@@ -270,18 +270,18 @@ class SCSilicon2:
                                             a1 = allele1.lower() if a.islower() else allele1.upper()
                                             a2 = allele2.lower() if a.islower() else allele2.upper()
                                             phases[(chrom, currentsnppos)] = '0|1'
-                                            mline = mline[:sindex]+a1+mline[sindex+1]
-                                            pline = pline[:sindex]+a2+pline[sindex+1]
+                                            mline = mline[:sindex]+a1+mline[sindex+1:]
+                                            pline = pline[:sindex]+a2+pline[sindex+1:]
                                         else:
                                             a1 = allele2.lower() if a.islower() else allele2.upper()
                                             a2 = allele1.lower() if a.islower() else allele1.upper()
                                             phases[(chrom, currentsnppos)] = '1|0'
-                                            mline = mline[:sindex]+a1+mline[sindex+1]
-                                            pline = pline[:sindex]+a2+pline[sindex+1]
+                                            mline = mline[:sindex]+a1+mline[sindex+1:]
+                                            pline = pline[:sindex]+a2+pline[sindex+1:]
                                     else: #Homozygous
                                         a1 = allele1.lower() if a.islower() else allele1.upper()
-                                        mline = mline[:sindex]+a1+mline[sindex+1]
-                                        pline = pline[:sindex]+a1+mline[sindex+1]
+                                        mline = mline[:sindex]+a1+mline[sindex+1:]
+                                        pline = pline[:sindex]+a1+mline[sindex+1:]
                                     if snppos:
                                         currentsnppos = snppos.pop(0)
                                         allele1 = snps[currentsnppos][0]
@@ -298,6 +298,8 @@ class SCSilicon2:
                                 out1.write(line)
                                 out2.write(line)
                         currentpos += len(line)
+                    out1.write('\n')
+                    out2.write('\n')
         with open(phaselist, 'w') as output:
             for g in sorted(phases.keys(), key=(lambda x : (int(''.join([l for l in x[0] if l.isdigit()])), x[1]))):
                 output.write('{},{},{}\n'.format(g[0], g[1], phases[g]))
@@ -350,7 +352,7 @@ class SCSilicon2:
     def _generate_cnv_profile_for_each_clone(self, root, ref, m_fasta, p_fasta):
         cutoff = self.cnv_prob_cutoff
         changes = []
-        all_chroms = np.unique(ref['Chromosome'])
+        all_chroms = list(np.unique(ref['Chromosome']))
         if self.WGD_no + self.WCL_no > len(all_chroms):
             raise Exception("The sum of WGD_no and WCL_no should be less or equal to the total number of chromosomes!")
 
@@ -376,6 +378,13 @@ class SCSilicon2:
                 else:
                     paternal_genome[chrom] += line
         
+        # add nromal clone to cnv matrix
+        for i in range(ref.shape[0]):
+            root.maternal_cnvs.append(1)
+            root.paternal_cnvs.append(1)
+        ref[root.name+'_maternal_cnvs'] = root.maternal_cnvs
+        ref[root.name+'_paternal_cnvs'] = root.paternal_cnvs
+        
         # add the children of normal clone to queue
         queue = deque(root.children)
 
@@ -388,11 +397,14 @@ class SCSilicon2:
                 wcl_chroms = []
                 
                 # select WGD and WCL chromosomes
-                random_chroms = random.choices(all_chroms, k=self.WGD_no+self.WCL_no)
+                print(all_chroms)
+                random_chroms = random.sample(all_chroms, self.WGD_no+self.WCL_no)
                 wgd_chroms = random_chroms[:self.WGD_no]
-                wcl_chroms = random_chroms[self.WGD_no:]
+                wcl_chroms = random_chroms[self.WCL_no:]
+                print(clone.name, wgd_chroms, wcl_chroms)
                 wgd_cnvs = dict.fromkeys(wgd_chroms) # store the cnv number for each wgd chrom
-            
+                wcl_cnvs = dict.fromkeys(wcl_chroms) # store the cnv number for each wgd chrom
+
                 # select the position for CNL_LOH, CNN_LOH, GOH and mirrored cnv
                 random_bins = random.sample(range(0, ref.shape[0]), self.CNL_LOH_no + self.CNN_LOH_no + self.GOH_no + self.mirrored_cnv_no)
                 cnl_loh_bins = random_bins[:self.CNL_LOH_no]
@@ -432,29 +444,36 @@ class SCSilicon2:
                         elif random_prob > 2/3:
                             changes.append(['normal',clone.name,'maternal','WGD',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(m_cnv)])
                             clone.maternal_cnvs.append(m_cnv)
+                            clone.paternal_cnvs.append(1)
                         else:
                             changes.append(['normal',clone.name,'paternal','WGD',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(p_cnv)])
+                            clone.maternal_cnvs.append(1)
                             clone.paternal_cnvs.append(p_cnv)
                         clone.changes.append('WGD')
                         continue
                     
                     # handle WCL
                     if current_chrom in wcl_chroms:
-                        m_cnv = 0
-                        p_cnv = 0
-                        # 1. WCL in maternal and paternal 2. WCL in maternal 3. WCL in paternal
-                        random_prob = random.random()
-                        if random_prob < 1/3:
-                            changes.append(['normal',clone.name,'maternal','WCL',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(m_cnv)])
-                            changes.append(['normal',clone.name,'paternal','WCL',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(p_cnv)])
-                            clone.maternal_cnvs.append(m_cnv)
-                            clone.paternal_cnvs.append(p_cnv)
-                        elif random_prob > 2/3:
-                            changes.append(['normal',clone.name,'maternal','WCL',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(m_cnv)])
-                            clone.maternal_cnvs.append(m_cnv)
+                        if not wcl_cnvs[current_chrom]:
+                            # 1. WCL in maternal and paternal 2. WCL in maternal 3. WCL in paternal
+                            random_prob = random.random()
+                            if random_prob < 1/3:
+                                wcl_cnvs[current_chrom] = (True, True)
+                            elif random_prob > 2/3:
+                                wcl_cnvs[current_chrom] = (True, False)
+                            else:
+                                wcl_cnvs[current_chrom] = (False, True)
+
+                        if wcl_cnvs[current_chrom][0]:
+                            changes.append(['normal',clone.name,'maternal','WCL',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                            clone.maternal_cnvs.append(0)
                         else:
-                            changes.append(['normal',clone.name,'paternal','WCL',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(p_cnv)])
-                            clone.paternal_cnvs.append(p_cnv)
+                            clone.maternal_cnvs.append(1)
+                        if wcl_cnvs[current_chrom][1]:
+                            changes.append(['normal',clone.name,'paternal','WCL',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(0)])
+                            clone.paternal_cnvs.append(0)
+                        else:
+                            clone.paternal_cnvs.append(1)
                         clone.changes.append('WCL')
                         continue
                     
@@ -539,8 +558,8 @@ class SCSilicon2:
                         total_cnv = utils.random_mirrored_cnv()
                         cnv1 = random.randint(0,total_cnv)
                         while cnv1 == total_cnv/2:
-                            cnv1 = random.randint(total_cnv)
-                        cnv2 = total_cnv - cnv2
+                            cnv1 = random.randint(0, total_cnv)
+                        cnv2 = total_cnv - cnv1
                         if random.random() < 0.5: # m:p = cnv1:cnv2
                             changes.append(['normal',clone.name,'maternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(cnv1)])
                             changes.append(['normal',clone.name,'maternal','mirrored cnv',ref['Chromosome'][i+1]+':'+str(ref['Start'][i+1])+'-'+str(ref['End'][i+1]),'1->'+str(cnv2)])
@@ -581,7 +600,7 @@ class SCSilicon2:
                         
                         # check mirrored CNV
                         if clone.changes and clone.changes[-1] in ['REGULAR', 'NONE']:
-                            if m_cnv + clone.maternal_cnvs[-1] == p_cnv + clone.paternal_cnvs[-1]:
+                            if m_cnv != p_cnv and m_cnv == clone.paternal_cnvs[-1] and clone.maternal_cnvs[-1] == p_cnv:
                                 clone.maternal_cnvs.append(m_cnv)
                                 clone.paternal_cnvs.append(p_cnv)
                                 if clone.changes[-1] == 'REGULAR':
@@ -717,7 +736,7 @@ class SCSilicon2:
                             total_cnv = utils.random_mirrored_cnv()
                             cnv1 = random.randint(0,total_cnv)
                             while cnv1 == total_cnv/2:
-                                cnv1 = random.randint(total_cnv)
+                                cnv1 = random.randint(0, total_cnv)
                             cnv2 = total_cnv - cnv2
                             if random.random() < 0.5: # m:p = cnv1:cnv2
                                 changes.append([clone.parent.name,clone.name,'maternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(cnv1)])
@@ -744,15 +763,17 @@ class SCSilicon2:
                     
                     # regular situation
                     if random.random() > cutoff: # 20% cnv
+                        m_cnv = utils.random_cnv()
+                        p_cnv = utils.random_cnv()
                         if m_parent_cnv == 0:
                             m_cnv = 0
                         else:
-                            m_cnv = random.randint(m_parent_cnv, 5)
+                            m_cnv = random.randint(m_parent_cnv, max(5, m_parent_cnv+1))
                         
                         if p_parent_cnv == 0:
                             p_cnv = 0
                         else:
-                            p_cnv = random.randint(p_parent_cnv, 5)
+                            p_cnv = random.randint(p_parent_cnv, max(5, p_parent_cnv+1))
                         
                         # check whether is CNL_LOH
                         if (m_sequence != p_sequence) and ((m_cnv == 0 and p_cnv !=0) or (m_cnv != 0 and p_cnv ==0)):
@@ -765,9 +786,9 @@ class SCSilicon2:
                         
                         # check mirrored CNV
                         if clone.changes and clone.changes[i-1] in ['REGULAR', 'NONE']:
-                            if m_cnv + clone.maternal_cnvs[i-1] == p_cnv + clone.paternal_cnvs[i-1]:
-                                clone.maternal_cnvs.append(m_cnv)
-                                clone.paternal_cnvs.append(p_cnv)
+                            if m_cnv != p_cnv and m_cnv == clone.paternal_cnvs[-1] and clone.maternal_cnvs[-1] == p_cnv:
+                                clone.maternal_cnvs[i] = m_cnv
+                                clone.paternal_cnvs[i] = p_cnv
                                 if clone.changes[i-1] == 'REGULAR':
                                     changes.pop()
                                     changes.pop()
@@ -793,7 +814,7 @@ class SCSilicon2:
                         clone.maternal_cnvs[i] = m_cnv
                         clone.paternal_cnvs[i] = p_cnv
                         clone.changes[i] = 'REGULAR'
-
+            
             ref[clone.name+'_maternal_cnvs'] = clone.maternal_cnvs
             ref[clone.name+'_paternal_cnvs'] = clone.paternal_cnvs
             queue.extend(clone.children)
@@ -827,10 +848,10 @@ class SCSilicon2:
         return merged_ref, changes, maternal_genome, paternal_genome
 
     def _generate_fasta_for_each_clone(self, root, ref, changes, maternal_genome, paternal_genome, outdir):
-        stack = root.children
+        queue = deque(root.children)
 
-        while stack:
-            clone = stack.pop()
+        while queue:
+            clone = queue.popleft()
             clone.maternal_fasta = os.path.join(outdir, clone.name+'_maternal.fasta')
             clone.paternal_fasta = os.path.join(outdir, clone.name+'_paternal.fasta')
             
@@ -840,7 +861,6 @@ class SCSilicon2:
                         m_output.write('>'+chrom+'\n')
                         p_output.write('>'+chrom+'\n')
                         chrom_ref = ref[ref['Chromosome'] == chrom]
-                        chrom_changes = changes[changes['Chromosome'] == chrom]
                         for index, row in chrom_ref.iterrows():
                             m_cnv = int(row[clone.name+'_maternal_cnvs'])
                             p_cnv = int(row[clone.name+'_paternal_cnvs'])
@@ -849,7 +869,10 @@ class SCSilicon2:
 
                             # handle CNN_LOH
                             segment = chrom + ':' + str(start) + '-' + str(end)
-                            cnv_type = chrom_changes[(chrom_changes['Child']==clone.name) & (chrom_changes['Segment']==segment)]['Type'][0]
+                            try:
+                                cnv_type = changes[(changes['Child']==clone.name) & (changes['Segment']==segment)]['Type'][0]
+                            except:
+                                cnv_type = 'REGULAR'
                             m_sequence = maternal_genome[chrom][start-1:end]
                             p_sequence = paternal_genome[chrom][start-1:end]
                             if cnv_type == 'CNN_LOH':
@@ -866,7 +889,7 @@ class SCSilicon2:
                             elif cnv_type == 'GOH':
                                 seq_len = len(m_sequence)
                                 random_snp_no = random.randint(5, 30)
-                                random_snps = {snp : set(random.sample(['A','T','C','G'], 2)) for snp in random.sample(range(seq_len), random_snp_no)}
+                                random_snps = {snp : random.sample(['A','T','C','G'], 2) for snp in random.sample(range(seq_len), random_snp_no)}
                                 new_m_sequence = ''
                                 new_p_sequence = ''
                                 snp_pos = random_snps.keys()
@@ -888,16 +911,17 @@ class SCSilicon2:
                             clone.paternal_fasta_length += len(cnv_p_sequence)
                         m_output.write('\n')
                         p_output.write('\n')
-            stack.extend(clone.children)
+            queue.extend(clone.children)
+        print(root.children)
 
     def _out_cnv_profile(self, root, ref, changes, outdir):
         # out cnv profile csv
         df = ref[['Chromosome', 'Start', 'End']]
-        stack = root.children
-        while stack:
-            clone = stack.pop()
+        queue = deque([root])
+        while queue:
+            clone = queue.popleft()
             df[clone.name] = ref[clone.name+'_maternal_cnvs'].astype(str) + '|' + ref[clone.name+'_paternal_cnvs'].astype(str)
-            stack.extend(clone.children)
+            queue.extend(clone.children)
         df.to_csv(os.path.join(outdir, 'cnv_profile.csv'), index=False)
 
         # out maternal cnv matrix
@@ -919,18 +943,19 @@ class SCSilicon2:
 
     def _merge_fasta_for_each_clone(self, root, outdir):
         # merge fasta for each clone
-        stack = [root]
-        while stack:
-            clone = stack.pop()
+        queue = deque([root])
+        while queue:
+            clone = queue.popleft()
+            print(clone.name, clone.children)
             clone.fasta = os.path.join(outdir, clone.name+'.fasta')
             command = """sed '/^>chr/ s/$/-A/' {0} > {1} && sed '/^>chr/ s/$/-B/' {2} >> {1}""".format(clone.maternal_fasta, clone.fasta, clone.paternal_fasta)
             code = os.system(command)
-            stack.extend(clone.children)
+            queue.extend(clone.children)
 
     def _generate_fastq(self, root, outdir):
-        stack = [root]
-        while stack:
-            clone = stack.pop()
+        queue = deque([root])
+        while queue:
+            clone = queue.popleft()
             pe_reads = round((clone.maternal_fasta_length + clone.paternal_fasta_length)*self.clone_coverage/(self.reads_len*2), 6)
             fq1 = os.path.join(outdir, clone.name+'_r1.fq')
             fq2 = os.path.join(outdir, clone.name+'_r2.fq')
@@ -940,13 +965,13 @@ class SCSilicon2:
             command = "wgsim -e {0} -d {1} -s 35 -N {2} -1 {3} -2 {3} -r0 -R0 -X0 {4} {5} {6}".format(self.error_rate,self.insertion_size,pe_reads,self.reads_len,clone.fasta,fq1,fq2)
             # logging.info(command)
             code = os.system(command)
-            stack.extend(clone.children)
+            queue.extend(clone.children)
 
     def _downsampling_fastq(self, root, outdir):
-        stack = [root]
+        queue = deque([root])
         assigns = utils.assign_cells_to_clones(self.cell_no, self.clone_no+1) # 1 for normal
-        while stack:
-            clone = stack.pop()
+        while queue:
+            clone = queue.pop()
             clone_dir = os.path.join(outdir, clone.name)
             if not os.path.exists(clone_dir):
                 os.makedirs(clone_dir)
@@ -1001,7 +1026,7 @@ class SCSilicon2:
                 #                 current_line = lines.pop(0)
                 #             index += 1
                             
-            stack.extend(clone.children)
+            queue.extend(clone.children)
 
     def sim_dataset(self):
         logging.info("Start simulation process...")
@@ -1023,6 +1048,7 @@ class SCSilicon2:
 
         # generate normal fasta with snps 
         logging.info("Building normal fasta file...")
+        self._get_chrom_sizes()
         self._buildGenome(m_fasta, p_fasta, phase_file)
         
         # generate random clone tree and set root as normal clone
@@ -1033,16 +1059,24 @@ class SCSilicon2:
         normal_fasta_length = sum(self.chrom_sizes.values())
         root.maternal_fasta_length = normal_fasta_length
         root.paternal_fasta_length = normal_fasta_length
-        
+
+        # output tree graph and newick
+        logging.info('Drawing tree graph...')
+        random_tree.draw_tree_to_pdf(root, os.path.join(profile_dir, 'tree.pdf'))
+        tree_newick = os.path.join(profile_dir, 'tree.newick')
+        result = random_tree.tree_to_newick(root)
+        with open(tree_newick, 'w') as output:
+            output.write(result)
 
         # generate cnv for each clone
         logging.info('Generating CNV profile for each clone...')
         ref = self._split_chr_to_bins('all')
         new_ref, changes, maternal_genome, paternal_genome = self._generate_cnv_profile_for_each_clone(root, ref, m_fasta, p_fasta)
         new_changes = self._out_cnv_profile(root, new_ref, changes, profile_dir)
-
+        print(root.children)
         # generate fasta file for each clone
         logging.info('Generating fasta file for each clone...')
+        print(new_changes)
         self._generate_fasta_for_each_clone(root, new_ref, new_changes, maternal_genome, paternal_genome, fasta_dir)
 
         # add normal to the tree
@@ -1060,14 +1094,14 @@ class SCSilicon2:
         self._merge_fasta_for_each_clone(root, fasta_dir)
 
         # generate fastq for each clone
-        logging.info('Generating fastq file for each clone...')
-        self._generate_fastq(root, fastq_dir)
+        # logging.info('Generating fastq file for each clone...')
+        # self._generate_fastq(root, fastq_dir)
 
-        # sampling
-        logging.info('Generating fastq file for cells of each clone...')
-        self._downsampling_fastq(root, fastq_dir)
+        # # sampling
+        # logging.info('Generating fastq file for cells of each clone...')
+        # self._downsampling_fastq(root, fastq_dir)
 
-        # output tree graph and newick
+         # output tree graph and newick
         logging.info('Drawing tree graph...')
         random_tree.draw_tree_to_pdf(root, os.path.join(profile_dir, 'tree.pdf'))
         tree_newick = os.path.join(profile_dir, 'tree.newick')

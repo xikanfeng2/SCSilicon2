@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import random
+from collections import deque
+
 
 class TreeNode:
     def __init__(self, name):
@@ -58,8 +60,23 @@ def cal_tree_depth(tree):
 
     return max(cal_tree_depth(child) for child in tree.children) + 1
 
+# def draw_tree_to_pdf(random_tree, outfile):
+#     # Creating a graph for drawing
+#     graph = nx.DiGraph()
+#     graph.add_node(random_tree.name)
+#     def add_edges(node):
+#         for child in node.children:
+#             graph.add_edge(node.name, child.name)
+#             add_edges(child)
+#     add_edges(random_tree)
 
+#     # Drawing the tree using matplotlib
+#     pos = draw_tree(random_tree)
+#     plt.figure(figsize=(20, 10))
+#     nx.draw(graph, pos, with_labels=True, arrows=False, node_size=700, node_color="skyblue", font_size=8, font_color="black")
 
+#     # Save the tree graph to a PDF file
+#     plt.savefig(outfile, format="pdf", dpi=300, bbox_inches="tight")
 def draw_tree_to_pdf(random_tree, outfile):
     # Creating a graph for drawing
     graph = nx.DiGraph()
@@ -70,13 +87,22 @@ def draw_tree_to_pdf(random_tree, outfile):
             add_edges(child)
     add_edges(random_tree)
 
-    # Drawing the tree using matplotlib
+    # Calculating positions of nodes
     pos = draw_tree(random_tree)
-    plt.figure(figsize=(20, 10))
-    nx.draw(graph, pos, with_labels=True, arrows=False, node_size=700, node_color="skyblue", font_size=8, font_color="black")
 
+    # Drawing the tree using matplotlib
+    plt.figure(figsize=(20, 10))
+
+    # Adjust horizontal spacing based on the number of children
+    max_children = max(len(child.children) for child in random_tree.children)
+    horizontal_spacing = 1 / (max_children + 1)
+
+    # Draw the tree with adjusted positions
+    nx.draw(graph, pos, with_labels=True, arrows=False, node_size=700, node_color="skyblue", font_size=8, font_color="black")
+    
     # Save the tree graph to a PDF file
     plt.savefig(outfile, format="pdf", dpi=300, bbox_inches="tight")
+
 
 def rename_tree_nodes(root, start_value=0):
     """
@@ -86,23 +112,22 @@ def rename_tree_nodes(root, start_value=0):
     - root: The root node of the tree.
     - start_value: The starting value for renaming nodes (default is 0).
     """
-    stack = [(root, 0)]
+    queue = deque([(root, 0)])
     current_value = start_value
 
-    while stack:
-        node, depth = stack.pop()
+    while queue:
+        node, depth = queue.popleft()
 
         # Rename the current node
         if depth == 0:
             node.name = 'normal'
-            continue
         else:
             node.name = 'clone' + str(current_value)
         node.depth = depth
         current_value += 1
 
         # Add children to the stack with increased depth
-        stack.extend((child, depth + 1) for child in node.children)
+        queue.extend((child, depth + 1) for child in node.children)
 
 def generate_random_tree_balance(node_count, max_depth):
     # Example usage

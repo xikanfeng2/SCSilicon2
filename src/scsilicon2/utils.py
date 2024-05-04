@@ -107,7 +107,7 @@ def check_in(choices, **params):
 def randomSNPList(chrom_sizes, snp_ratio):
     snpList = {}
     for chrom, chrom_len in chrom_sizes.items():
-        snpList[chrom] = {snp : set(random.sample(['A','T','C','G'], 2)) for snp in random.sample(range(chrom_len), int(round(chrom_len * snp_ratio)))}
+        snpList[chrom] = {snp : random.sample(['A','T','C','G'], 2) for snp in random.sample(range(1, chrom_len+1), int(round(chrom_len * snp_ratio)))}
     return snpList
 
 def parseSNPList(snpfile):
