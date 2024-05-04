@@ -252,8 +252,11 @@ class SCSilicon2:
                             chrom = line.strip()[1:].split()[0]
                             # m_genome[chrom] = ''
                             # p_genome[chrom] = ''
+                            print(allsnps.keys())
+                            print(chrom)
                             snps = allsnps[chrom]
                             snppos = sorted(snps.keys())
+                            # print(snppos)
                             currentsnppos = snppos.pop(0)
                             allele1 = snps[currentsnppos][0]
                             allele2 = snps[currentsnppos][1]
@@ -397,11 +400,9 @@ class SCSilicon2:
                 wcl_chroms = []
                 
                 # select WGD and WCL chromosomes
-                print(all_chroms)
                 random_chroms = random.sample(all_chroms, self.WGD_no+self.WCL_no)
                 wgd_chroms = random_chroms[:self.WGD_no]
                 wcl_chroms = random_chroms[self.WCL_no:]
-                print(clone.name, wgd_chroms, wcl_chroms)
                 wgd_cnvs = dict.fromkeys(wgd_chroms) # store the cnv number for each wgd chrom
                 wcl_cnvs = dict.fromkeys(wcl_chroms) # store the cnv number for each wgd chrom
 
@@ -912,7 +913,6 @@ class SCSilicon2:
                         m_output.write('\n')
                         p_output.write('\n')
             queue.extend(clone.children)
-        print(root.children)
 
     def _out_cnv_profile(self, root, ref, changes, outdir):
         # out cnv profile csv
@@ -946,7 +946,6 @@ class SCSilicon2:
         queue = deque([root])
         while queue:
             clone = queue.popleft()
-            print(clone.name, clone.children)
             clone.fasta = os.path.join(outdir, clone.name+'.fasta')
             command = """sed '/^>chr/ s/$/-A/' {0} > {1} && sed '/^>chr/ s/$/-B/' {2} >> {1}""".format(clone.maternal_fasta, clone.fasta, clone.paternal_fasta)
             code = os.system(command)
@@ -1073,10 +1072,9 @@ class SCSilicon2:
         ref = self._split_chr_to_bins('all')
         new_ref, changes, maternal_genome, paternal_genome = self._generate_cnv_profile_for_each_clone(root, ref, m_fasta, p_fasta)
         new_changes = self._out_cnv_profile(root, new_ref, changes, profile_dir)
-        print(root.children)
+
         # generate fasta file for each clone
         logging.info('Generating fasta file for each clone...')
-        print(new_changes)
         self._generate_fasta_for_each_clone(root, new_ref, new_changes, maternal_genome, paternal_genome, fasta_dir)
 
         # add normal to the tree
