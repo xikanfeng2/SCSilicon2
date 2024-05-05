@@ -8,18 +8,20 @@ import logging
 from . import utils
 from . import random_tree
 from collections import deque
+from multiprocessing.pool import ThreadPool as Pool
 
 logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.0000333, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.0000333, thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.ignore_file = ignore_file
         self.outdir = outdir
         self.clone_no = clone_no
         self.cell_no = cell_no
+        self.thread = thread
         self.max_cnv_tree_depth = max_cnv_tree_depth
         self.bin_len = bin_len
         self.snp_ratio = snp_ratio
@@ -75,6 +77,8 @@ class SCSilicon2:
         utils.check_positive(cell_coverage=self.cell_coverage)
         utils.check_int(reads_len=self.reads_len)
         utils.check_positive(reads_len=self.reads_len)
+        utils.check_int(reads_len=self.thread)
+        utils.check_positive(reads_len=self.thread)
         utils.check_int(insertion_size=self.insertion_size)
         utils.check_positive(insertion_size=self.insertion_size)
         utils.check_between(0,1,error_rate=self.error_rate)
@@ -174,6 +178,9 @@ class SCSilicon2:
         if 'bin_len' in params and params['bin_len'] != self.bin_len:
             self.bin_len = params['bin_len']
             del params['bin_len']
+        if 'thread' in params and params['thread'] != self.thread:
+            self.thread = params['thread']
+            del params['thread']
         if 'HEHO_ratio' in params and params['HEHO_ratio'] != self.HEHO_ratio:
             self.HEHO_ratio = params['HEHO_ratio']
             del params['HEHO_ratio']
@@ -751,7 +758,7 @@ class SCSilicon2:
                             cnv1 = random.randint(0,total_cnv)
                             while cnv1 == total_cnv/2:
                                 cnv1 = random.randint(0, total_cnv)
-                            cnv2 = total_cnv - cnv2
+                            cnv2 = total_cnv - cnv1
                             if random.random() < 0.5: # m:p = cnv1:cnv2
                                 changes.append([clone.parent.name,clone.name,'maternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(cnv1)])
                                 changes.append([clone.parent.name,clone.name,'maternal','mirrored cnv',ref['Chromosome'][i+1]+':'+str(ref['Start'][i+1])+'-'+str(ref['End'][i+1]),'1->'+str(cnv2)])
@@ -964,7 +971,15 @@ class SCSilicon2:
             code = os.system(command)
             queue.extend(clone.children)
 
+    def _wgsim_process(self, pe_reads, fasta, fq1, fq2):
+        #where yyy is the read length, zzz is the error rate and $xxx * $yyy = 10000000.
+        command = "wgsim -e {0} -d {1} -s 35 -N {2} -1 {3} -2 {3} -r0 -R0 -X0 {4} {5} {6}".format(self.error_rate,self.insertion_size,pe_reads,self.reads_len,fasta,fq1,fq2)
+        # logging.info(command)
+        code = os.system(command)
+
     def _generate_fastq(self, root, outdir):
+        pool = Pool(self.thread)
+
         queue = deque([root])
         while queue:
             clone = queue.popleft()
@@ -973,11 +988,12 @@ class SCSilicon2:
             fq2 = os.path.join(outdir, clone.name+'_r2.fq')
             clone.fq1 = fq1
             clone.fq2 = fq2
-            #where yyy is the read length, zzz is the error rate and $xxx * $yyy = 10000000.
-            command = "wgsim -e {0} -d {1} -s 35 -N {2} -1 {3} -2 {3} -r0 -R0 -X0 {4} {5} {6}".format(self.error_rate,self.insertion_size,pe_reads,self.reads_len,clone.fasta,fq1,fq2)
-            # logging.info(command)
-            code = os.system(command)
+
+            pool.apply_async(self._wgsim_process, (pe_reads,clone.fasta,fq1,fq2))
             queue.extend(clone.children)
+            
+        pool.close()
+        pool.join()
 
     def _downsampling_fastq(self, root, outdir):
         queue = deque([root])
