@@ -14,7 +14,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.0000333, thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.ignore_file = ignore_file
@@ -250,6 +250,7 @@ class SCSilicon2:
             allsnps = utils.randomSNPList(self.chrom_sizes, self.snp_ratio)
         else:
             allsnps = utils.parseSNPList(self.snp_file)
+        print(allsnps)
         phases = {}
         # m_genome = {}
         # p_genome = {}
@@ -258,7 +259,7 @@ class SCSilicon2:
                 with open(paternalFasta, 'w') as out2:
                     chrom = None
                     snps = None
-                    currentpos = 0 
+                    
                     for line in refinput:
                         line = line.strip()
                         if line.startswith('>'):
@@ -274,7 +275,7 @@ class SCSilicon2:
                             # p_genome[chrom] = ''
                             snps = allsnps[chrom]
                             snppos = sorted(snps.keys())
-                            # print(snppos)
+                            currentpos = 0 
                             currentsnppos = snppos.pop(0)
                             allele1 = snps[currentsnppos][0]
                             allele2 = snps[currentsnppos][1]
@@ -292,13 +293,13 @@ class SCSilicon2:
                                         if random.random() < 0.5:
                                             a1 = allele1.lower() if a.islower() else allele1.upper()
                                             a2 = allele2.lower() if a.islower() else allele2.upper()
-                                            phases[(chrom, currentsnppos)] = '0|1'
+                                            phases[(chrom, currentsnppos)] = a1 + ',' + a2 + ',0|1'
                                             mline = mline[:sindex]+a1+mline[sindex+1:]
                                             pline = pline[:sindex]+a2+pline[sindex+1:]
                                         else:
                                             a1 = allele2.lower() if a.islower() else allele2.upper()
                                             a2 = allele1.lower() if a.islower() else allele1.upper()
-                                            phases[(chrom, currentsnppos)] = '1|0'
+                                            phases[(chrom, currentsnppos)] = a2 + ',' + a1 + ',1|0'
                                             mline = mline[:sindex]+a1+mline[sindex+1:]
                                             pline = pline[:sindex]+a2+pline[sindex+1:]
                                     else: #Homozygous
@@ -1122,8 +1123,8 @@ class SCSilicon2:
         self._generate_fastq(root, fastq_dir)
 
         # sampling
-        logging.info('Generating fastq file for cells of each clone...')
-        self._downsampling_fastq(root, fastq_dir)
+        # logging.info('Generating fastq file for cells of each clone...')
+        # self._downsampling_fastq(root, fastq_dir)
 
         # output tree newick
         tree_newick = os.path.join(profile_dir, 'tree.newick')
