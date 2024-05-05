@@ -612,8 +612,8 @@ class SCSilicon2:
 
                         # check whether is CNL_LOH
                         if (m_sequence != p_sequence) and ((m_cnv == 0 and p_cnv !=0) or (m_cnv != 0 and p_cnv ==0)):
-                            changes.append(['normal',clone.name,'maternal',mtype,ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(m_cnv)])
-                            changes.append(['normal',clone.name,'paternal',ptype,ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(p_cnv)])
+                            changes.append(['normal',clone.name,'maternal','CNL_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(m_cnv)])
+                            changes.append(['normal',clone.name,'paternal','CNL_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(p_cnv)])
                             clone.maternal_cnvs.append(m_cnv)
                             clone.paternal_cnvs.append(p_cnv)
                             clone.changes.append('CNL_LOH')
@@ -798,8 +798,8 @@ class SCSilicon2:
                         
                         # check whether is CNL_LOH
                         if (m_sequence != p_sequence) and ((m_cnv == 0 and p_cnv !=0) or (m_cnv != 0 and p_cnv ==0)):
-                            changes.append([clone.parent.name,clone.name,'maternal',mtype,ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),str(m_parent_cnv)+'->'+str(m_cnv)])
-                            changes.append([clone.parent.name,clone.name,'paternal',ptype,ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),str(p_parent_cnv)+'->'+str(p_cnv)])
+                            changes.append([clone.parent.name,clone.name,'maternal','CNL_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),str(m_parent_cnv)+'->'+str(m_cnv)])
+                            changes.append([clone.parent.name,clone.name,'paternal','CNL_LOH',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),str(p_parent_cnv)+'->'+str(p_cnv)])
                             clone.maternal_cnvs[i] = m_cnv
                             clone.paternal_cnvs[i] = p_cnv
                             clone.changes[i] = 'CNL_LOH'
