@@ -622,8 +622,6 @@ class SCSilicon2:
                         # check mirrored CNV
                         if clone.changes and clone.changes[-1] in ['REGULAR', 'NONE']:
                             if m_cnv != p_cnv and m_cnv == clone.paternal_cnvs[-1] and clone.maternal_cnvs[-1] == p_cnv:
-                                clone.maternal_cnvs.append(m_cnv)
-                                clone.paternal_cnvs.append(p_cnv)
                                 if clone.changes[-1] == 'REGULAR':
                                     clone.changes.pop()
                                     changes.pop()
@@ -632,6 +630,8 @@ class SCSilicon2:
                                 changes.append(['normal',clone.name,'maternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(m_cnv)])
                                 changes.append(['normal',clone.name,'paternal','mirrored cnv',ref['Chromosome'][i-1]+':'+str(ref['Start'][i-1])+'-'+str(ref['End'][i-1]),'1->'+str(clone.paternal_cnvs[-1])])
                                 changes.append(['normal',clone.name,'paternal','mirrored cnv',ref['Chromosome'][i]+':'+str(ref['Start'][i])+'-'+str(ref['End'][i]),'1->'+str(p_cnv)])
+                                clone.maternal_cnvs.append(m_cnv)
+                                clone.paternal_cnvs.append(p_cnv)
                                 clone.changes.append('mirrored cnv')
                                 clone.changes.append('mirrored cnv')
                                 continue
