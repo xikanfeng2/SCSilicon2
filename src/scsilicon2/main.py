@@ -293,13 +293,13 @@ class SCSilicon2:
                                         if random.random() < 0.5:
                                             a1 = allele1.lower() if a.islower() else allele1.upper()
                                             a2 = allele2.lower() if a.islower() else allele2.upper()
-                                            phases[(chrom, currentsnppos)] = a1 + ',' + a2 + ',0|1'
+                                            phases[(chrom, currentsnppos)] = a1.upper() + ',' + a2.upper() + ',0|1'
                                             mline = mline[:sindex]+a1+mline[sindex+1:]
                                             pline = pline[:sindex]+a2+pline[sindex+1:]
                                         else:
                                             a1 = allele2.lower() if a.islower() else allele2.upper()
                                             a2 = allele1.lower() if a.islower() else allele1.upper()
-                                            phases[(chrom, currentsnppos)] = a2 + ',' + a1 + ',1|0'
+                                            phases[(chrom, currentsnppos)] = a2.upper() + ',' + a1.upper() + ',1|0'
                                             mline = mline[:sindex]+a1+mline[sindex+1:]
                                             pline = pline[:sindex]+a2+pline[sindex+1:]
                                     else: #Homozygous
