@@ -167,16 +167,27 @@ def random_CNL():
     return random.choices(numbers, weights=probabilities)[0]
 
 def assign_cells_to_clones(cell_no, clone_no):
-        # Ensure at least one cell for each clone
-        clones = [1] * clone_no
-        remaining_cells = cell_no - clone_no
+    # # Ensure at least one cell for each clone
+    # clones = [1] * clone_no
+    # remaining_cells = cell_no - clone_no
 
-        # Assign remaining cells to clones
-        for _ in range(remaining_cells):
-            clone_index = random.randint(0, clone_no - 1)
-            clones[clone_index] += 1
+    # # Assign remaining cells to clones
+    # for _ in range(remaining_cells):
+    #     clone_index = random.randint(0, clone_no - 1)
+    #     clones[clone_index] += 1
 
-        return clones
+    # return clones
+    # Initialize a list to hold the number of cells assigned to each clone
+    clones = [0] * clone_no
+    
+    # Distribute the cells to the clones
+    for i in range(cell_no):
+        # Determine which clone to assign the current cell to
+        clone_index = i % clone_no
+        # Increment the cell count for the determined clone
+        clones[clone_index] += 1
+    
+    return clones
 
 def random_sampling(m, n, k):
     # m for total reads no, n for cell no, k for per reads no in cell

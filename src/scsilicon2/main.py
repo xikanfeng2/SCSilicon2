@@ -14,7 +14,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.ignore_file = ignore_file
@@ -38,6 +38,11 @@ class SCSilicon2:
         self.CNN_LOH_no = CNN_LOH_no
         self.GOH_no = GOH_no
         self.mirrored_cnv_no = mirrored_cnv_no
+        self.mode = mode
+        if barcodes_file == None:
+            barcodes_file = os.path.join(utils.root_path(), 'data/barcodes.txt')
+        else:
+            barcodes_file = barcodes_file
         self.chrom_sizes = {}
         self.ignore_list = []
         self._check_params()
@@ -998,7 +1003,7 @@ class SCSilicon2:
 
     def _downsampling_fastq(self, root, outdir):
         queue = deque([root])
-        assigns = utils.assign_cells_to_clones(self.cell_no, self.clone_no+1) # 1 for normal
+        assigns = utils.assign_cells_to_clones(self.cell_no, self.clone_no)
         while queue:
             clone = queue.pop()
             clone_dir = os.path.join(outdir, clone.name)
@@ -1014,46 +1019,22 @@ class SCSilicon2:
                 lines = sampling_results[i]
 
                 # generate index file
-                index_file = os.path.join(clone_dir, 'cell'+str(i)+'.index')
+                index_file = os.path.join(clone_dir, clone.name + '_cell'+str(i)+'.index')
                 with open(index_file, 'w') as output:
                     for line in lines:
                         output.write(str(line)+'\n')
+                if self.mode ==0: # normal mode
+                    cell_fq1 = os.path.join(clone_dir, clone.name + '_cell'+str(i)+'_r1.fq')
+                    cell_fq2 = os.path.join(clone_dir, clone.name + '_cell'+str(i)+'_r2.fq')
+                    command = "awk 'NR == FNR{ ind[$1]; next }(FNR in ind)' "+index_file+" "+clone.fq1+" > " + cell_fq1
+                    code = os.system(command)
+                    command = "awk 'NR == FNR{ ind[$1]; next }(FNR in ind)' "+index_file+" "+clone.fq2+" > " + cell_fq2
+                    code = os.system(command)
 
-                cell_fq1 = os.path.join(clone_dir, 'cell'+str(i)+'_r1.fq')
-                cell_fq2 = os.path.join(clone_dir, 'cell'+str(i)+'_r2.fq')
-                command = "awk 'NR == FNR{ ind[$1]; next }(FNR in ind)' "+index_file+" "+clone.fq1+" > " + cell_fq1
-                code = os.system(command)
-                command = "awk 'NR == FNR{ ind[$1]; next }(FNR in ind)' "+index_file+" "+clone.fq2+" > " + cell_fq2
-                code = os.system(command)
-
-                # delete index file
-                os.remove(index_file)
-                
-                # lines = copy.deepcopy(sampling_results[i])
-                # with open(clone.fq1, 'r') as input:
-                #     with open(os.path.join(clone_dir, 'cell'+str(i)+'_r1.fq'), 'w') as output:
-                #         index = 0
-                #         current_line = lines.pop(0)
-                #         for line in input:
-                #             if index == current_line:
-                #                 output.write(line)
-                #                 if len(lines) == 0:
-                #                     break
-                #                 current_line = lines.pop(0)
-                #             index += 1
-                
-                # lines = copy.deepcopy(sampling_results[i])
-                # with open(clone.fq2, 'r') as input:
-                #     with open(os.path.join(clone_dir, 'cell'+str(i)+'_r2.fq'), 'w') as output:
-                #         index = 0
-                #         current_line = lines.pop(0)
-                #         for line in input:
-                #             if index == current_line:
-                #                 output.write(line)
-                #                 if len(lines) == 0:
-                #                     break
-                #                 current_line = lines.pop(0)
-                #             index += 1
+                    # delete index file
+                    os.remove(index_file)
+                else: # 10X barcode mode
+                    pass   
                             
             queue.extend(clone.children)
 
