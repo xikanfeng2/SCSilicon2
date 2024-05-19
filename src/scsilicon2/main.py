@@ -1035,7 +1035,8 @@ class SCSilicon2:
                     os.remove(index_file)
                 else: # 10X barcode mode
                     pass   
-                            
+            os.remove(clone.fq1)
+            os.remove(clone.fq2)                
             queue.extend(clone.children)
 
     def sim_dataset(self):
