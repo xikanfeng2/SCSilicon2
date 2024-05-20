@@ -1057,18 +1057,32 @@ class SCSilicon2:
         for clone in clones:
             fq1 = os.path.join(fastq_dir, clone + "_r1.fq")
             fq2 = os.path.join(fastq_dir, clone + "_r2.fq")
-            bam_file = os.path.join(bam_dir, clone+".sorted.bam")
+            sam_file = os.path.join(bam_dir, clone+".sam")
+            bam_file = os.path.join(bam_dir, clone+".bam")
+            sorted_bam_file = os.path.join(bam_dir, clone+".sorted.bam")
             dedup_bam_file = os.path.join(bam_dir, clone+".sorted.dedup.bam")
             dedup_metrics_file = os.path.join(bam_dir, clone+".sorted.dedup.metrics.txt")
 
             # run bwa
             logging.info('BWA alignment for {0}...'.format(clone))
-            command = "{0} mem -M -t {1} {2} {3} {4} | {5} sort -o {6}".format(self.bwa_path, self.bwa_thread, self.ref_genome, fq1, fq2, self.samtools_path, bam_file)
+            command = "{0} mem -M -t {1} {2} {3} {4} > {5}".format(self.bwa_path, self.bwa_thread, self.ref_genome, fq1, fq2, sam_file)
+            code = os.system(command)
+
+            # samtools sam to bam
+            logging.info('Samtools sam to bam for {0}...'.format(clone))
+            command = "{0} view -bS {1} > {2}".format(self.samtools_path, sam_file, bam_file)
+            code = os.system(command)
+
+            # run picard sort
+            logging.info('Picard MarkDuplicates for {0}...'.format(clone))
+            command = """java -Xmx40G -jar {0} SortSam \
+                        INPUT={1} OUTPUT={2} \
+                        SORT_ORDER=coordinate""".format(self.picard_path, bam_file, sorted_bam_file)
             code = os.system(command)
 
             # run samtools build index
             logging.info('Samtools build index for {0}...'.format(clone))
-            command = "{0} samtools index {1}".format(self.samtools_path, bam_file)
+            command = "{0} index {1}".format(self.samtools_path, sorted_bam_file)
             code = os.system(command)
 
             # run picard dedup
@@ -1078,7 +1092,7 @@ class SCSilicon2:
                         I={1} O={2} \
                         METRICS_FILE={3} \
                         PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
-                        PROGRAM_GROUP_NAME=MarkDuplicates""".format(self.picard_path, bam_file, dedup_bam_file, dedup_metrics_file)
+                        PROGRAM_GROUP_NAME=MarkDuplicates""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file)
             code = os.system(command)
 
              # run picard buildindex
