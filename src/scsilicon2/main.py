@@ -1086,8 +1086,8 @@ class SCSilicon2:
             command = "java -jar {0} BuildBamIndex I={1}".format(self.picard_path, dedup_bam_file)
             code = os.system(command)
 
-            os.remove(fq1)
-            os.remove(fq2)
+            # os.remove(fq1)
+            # os.remove(fq2)
 
     def sim_dataset(self):
         logging.info("Start simulation process...")
