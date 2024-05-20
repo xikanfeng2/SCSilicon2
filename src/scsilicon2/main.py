@@ -990,7 +990,7 @@ class SCSilicon2:
         code = os.system(command)
 
     def _generate_fastq(self, root, outdir):
-        pool = Pool(self.thread)
+        pool = Pool(self.wgsim_thread)
 
         queue = deque([root])
         while queue:
