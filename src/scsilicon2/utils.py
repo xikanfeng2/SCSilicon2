@@ -1,6 +1,7 @@
 import numbers
 import os
 import random
+import ntpath
 
 def check_exist(**params):
     """Check that files are exist as expected
@@ -209,6 +210,15 @@ def random_sampling(m, n, k):
             temp += [line*4+1, line*4+2, line*4+3, line*4+4]
         new_sampled_lines_2d.append(temp)
     return new_sampled_lines_2d
+
+def get_all_clones(files):
+    clones = []
+    for file in files:
+        clone = ntpath.basename(file).split('_')[0]
+        if clone not in clones:
+            clones.append(clone)
+
+    return clones
 
 def root_path():
     return os.path.dirname(os.path.abspath(__file__))

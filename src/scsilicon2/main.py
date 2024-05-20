@@ -8,20 +8,22 @@ import logging
 from . import utils
 from . import random_tree
 from collections import deque
+from glob import glob
 from multiprocessing.pool import ThreadPool as Pool
 
 logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar'):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.ignore_file = ignore_file
         self.outdir = outdir
         self.clone_no = clone_no
         self.cell_no = cell_no
-        self.thread = thread
+        self.wgsim_thread = wgsim_thread
+        self.bwa_thread = bwa_thread
         self.max_cnv_tree_depth = max_cnv_tree_depth
         self.bin_len = bin_len
         self.snp_ratio = snp_ratio
@@ -43,6 +45,10 @@ class SCSilicon2:
             barcodes_file = os.path.join(utils.root_path(), 'data/barcodes.txt')
         else:
             barcodes_file = barcodes_file
+        self.wgsim_path = wgsim_path
+        self.samtools_path = samtools_path
+        self.bwa_path = bwa_path
+        self.picard_path = picard_path
         self.chrom_sizes = {}
         self.ignore_list = []
         self._check_params()
@@ -82,8 +88,8 @@ class SCSilicon2:
         utils.check_positive(cell_coverage=self.cell_coverage)
         utils.check_int(reads_len=self.reads_len)
         utils.check_positive(reads_len=self.reads_len)
-        utils.check_int(reads_len=self.thread)
-        utils.check_positive(reads_len=self.thread)
+        utils.check_int(reads_len=self.wgsim_thread)
+        utils.check_positive(reads_len=self.wgsim_thread)
         utils.check_int(insertion_size=self.insertion_size)
         utils.check_positive(insertion_size=self.insertion_size)
         utils.check_between(0,1,error_rate=self.error_rate)
@@ -183,9 +189,9 @@ class SCSilicon2:
         if 'bin_len' in params and params['bin_len'] != self.bin_len:
             self.bin_len = params['bin_len']
             del params['bin_len']
-        if 'thread' in params and params['thread'] != self.thread:
-            self.thread = params['thread']
-            del params['thread']
+        if 'wgsim_thread' in params and params['wgsim_thread'] != self.wgsim_thread:
+            self.wgsim_thread = params['wgsim_thread']
+            del params['wgsim_thread']
         if 'HEHO_ratio' in params and params['HEHO_ratio'] != self.HEHO_ratio:
             self.HEHO_ratio = params['HEHO_ratio']
             del params['HEHO_ratio']
@@ -979,7 +985,7 @@ class SCSilicon2:
 
     def _wgsim_process(self, pe_reads, fasta, fq1, fq2):
         #where yyy is the read length, zzz is the error rate and $xxx * $yyy = 10000000.
-        command = "wgsim -e {0} -d {1} -s 35 -N {2} -1 {3} -2 {3} -r0 -R0 -X0 {4} {5} {6}".format(self.error_rate,self.insertion_size,pe_reads,self.reads_len,fasta,fq1,fq2)
+        command = self.wgsim_path + " -e {0} -d {1} -s 35 -N {2} -1 {3} -2 {3} -r0 -R0 -X0 {4} {5} {6}".format(self.error_rate,self.insertion_size,pe_reads,self.reads_len,fasta,fq1,fq2)
         # logging.info(command)
         code = os.system(command)
 
@@ -1001,43 +1007,87 @@ class SCSilicon2:
         pool.close()
         pool.join()
 
-    def _downsampling_fastq(self, root, outdir):
-        queue = deque([root])
-        assigns = utils.assign_cells_to_clones(self.cell_no, self.clone_no)
-        while queue:
-            clone = queue.pop()
-            clone_dir = os.path.join(outdir, clone.name)
-            if not os.path.exists(clone_dir):
-                os.makedirs(clone_dir)
-            clone.cell_no = assigns.pop()
-            clone.ratio = round(clone.cell_no/self.cell_no, 2)
-            total_reads_no = int(int(subprocess.check_output(['wc', '-l', clone.fq1]).split()[0])/4)
-            per_cell_reads_no = int(total_reads_no*self.cell_coverage/self.clone_coverage)
-            sampling_results = utils.random_sampling(total_reads_no, clone.cell_no, per_cell_reads_no)
+    # def _downsampling_fastq(self, root, outdir):
+    #     queue = deque([root])
+    #     assigns = utils.assign_cells_to_clones(self.cell_no, self.clone_no)
+    #     while queue:
+    #         clone = queue.pop()
+    #         clone_dir = os.path.join(outdir, clone.name)
+    #         if not os.path.exists(clone_dir):
+    #             os.makedirs(clone_dir)
+    #         clone.cell_no = assigns.pop()
+    #         clone.ratio = round(clone.cell_no/self.cell_no, 2)
+    #         total_reads_no = int(int(subprocess.check_output(['wc', '-l', clone.fq1]).split()[0])/4)
+    #         per_cell_reads_no = int(total_reads_no*self.cell_coverage/self.clone_coverage)
+    #         sampling_results = utils.random_sampling(total_reads_no, clone.cell_no, per_cell_reads_no)
 
-            for i in range(0, clone.cell_no):
-                lines = sampling_results[i]
+    #         for i in range(0, clone.cell_no):
+    #             lines = sampling_results[i]
 
-                # generate index file
-                index_file = os.path.join(clone_dir, clone.name + '_cell'+str(i)+'.index')
-                with open(index_file, 'w') as output:
-                    for line in lines:
-                        output.write(str(line)+'\n')
-                if self.mode ==0: # normal mode
-                    cell_fq1 = os.path.join(clone_dir, clone.name + '_cell'+str(i)+'_r1.fq')
-                    cell_fq2 = os.path.join(clone_dir, clone.name + '_cell'+str(i)+'_r2.fq')
-                    command = "awk 'NR == FNR{ ind[$1]; next }(FNR in ind)' "+index_file+" "+clone.fq1+" > " + cell_fq1
-                    code = os.system(command)
-                    command = "awk 'NR == FNR{ ind[$1]; next }(FNR in ind)' "+index_file+" "+clone.fq2+" > " + cell_fq2
-                    code = os.system(command)
+    #             # generate index file
+    #             index_file = os.path.join(clone_dir, clone.name + '_cell'+str(i)+'.index')
+    #             with open(index_file, 'w') as output:
+    #                 for line in lines:
+    #                     output.write(str(line)+'\n')
+    #             if self.mode ==0: # normal mode
+    #                 cell_fq1 = os.path.join(clone_dir, clone.name + '_cell'+str(i)+'_r1.fq')
+    #                 cell_fq2 = os.path.join(clone_dir, clone.name + '_cell'+str(i)+'_r2.fq')
+    #                 command = "awk 'NR == FNR{ ind[$1]; next }(FNR in ind)' "+index_file+" "+clone.fq1+" > " + cell_fq1
+    #                 code = os.system(command)
+    #                 command = "awk 'NR == FNR{ ind[$1]; next }(FNR in ind)' "+index_file+" "+clone.fq2+" > " + cell_fq2
+    #                 code = os.system(command)
 
-                    # delete index file
-                    os.remove(index_file)
-                else: # 10X barcode mode
-                    pass   
-            os.remove(clone.fq1)
-            os.remove(clone.fq2)                
-            queue.extend(clone.children)
+    #                 # delete index file
+    #                 os.remove(index_file)
+    #             else: # 10X barcode mode
+    #                 pass   
+    #         os.remove(clone.fq1)
+    #         os.remove(clone.fq2)                
+    #         queue.extend(clone.children)
+
+    def alignment(self):
+        fastq_dir = os.path.join(self.outdir, 'fastq')
+        bam_dir = os.path.join(self.outdir, 'bam')
+
+        if not os.path.exists(bam_dir):
+            os.makedirs(bam_dir)
+
+        files = glob(fastq_dir)
+        clones = utils.get_all_clones(files)
+        for clone in clones:
+            fq1 = os.path.join(fastq_dir, clone + "_r1.fq")
+            fq2 = os.path.join(fastq_dir, clone + "_r2.fq")
+            bam_file = os.path.join(bam_dir, clone+".sorted.bam")
+            dedup_bam_file = os.path.join(bam_dir, clone+".sorted.dedup.bam")
+            dedup_metrics_file = os.path.join(bam_dir, clone+".sorted.dedup.metrics.txt")
+
+            # run bwa
+            logging.info('BWA alignment for {0}...'.format(clone))
+            command = "{0} mem -M -t {1} {2} {3} {4} | {5} sort -o {6}".format(self.bwa_path, self.bwa_thread, self.ref_genome, fq1, fq2, self.samtools_path, bam_file)
+            code = os.system(command)
+
+            # run samtools build index
+            logging.info('Samtools build index for {0}...'.format(clone))
+            command = "{0} samtools index {1}".format(self.samtools_path, bam_file)
+            code = os.system(command)
+
+            # run picard dedup
+            logging.info('Picard MarkDuplicates for {0}...'.format(clone))
+            command = """java -Xmx40G -jar {0} MarkDuplicates \
+                        REMOVE_DUPLICATES=true \
+                        I={1} O={2} \
+                        METRICS_FILE={3} \
+                        PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
+                        PROGRAM_GROUP_NAME=MarkDuplicates""".format(self.picard_path, bam_file, dedup_bam_file, dedup_metrics_file)
+            code = os.system(command)
+
+             # run picard buildindex
+            logging.info('Picard BuildBamIndex for {0}...'.format(clone))
+            command = "java -jar {0} BuildBamIndex I={1}".format(self.picard_path, dedup_bam_file)
+            code = os.system(command)
+
+            os.remove(fq1)
+            os.remove(fq2)
 
     def sim_dataset(self):
         logging.info("Start simulation process...")
