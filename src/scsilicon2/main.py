@@ -1052,7 +1052,7 @@ class SCSilicon2:
         if not os.path.exists(bam_dir):
             os.makedirs(bam_dir)
 
-        files = glob(fastq_dir)
+        files = glob(fastq_dir+"/*.fq")
         clones = utils.get_all_clones(files)
         for clone in clones:
             fq1 = os.path.join(fastq_dir, clone + "_r1.fq")
