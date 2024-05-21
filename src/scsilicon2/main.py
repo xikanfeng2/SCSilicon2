@@ -1169,8 +1169,8 @@ class SCSilicon2:
         self._generate_fastq(root, fastq_dir)
 
         # sampling
-        logging.info('Generating fastq file for cells of each clone...')
-        self._downsampling_fastq(root, fastq_dir)
+        # logging.info('Generating fastq file for cells of each clone...')
+        # self._downsampling_fastq(root, fastq_dir)
 
         # output tree newick
         tree_newick = os.path.join(profile_dir, 'tree.newick')
