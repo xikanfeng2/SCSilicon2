@@ -15,7 +15,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=30, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar'):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=15, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar'):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.ignore_file = ignore_file
