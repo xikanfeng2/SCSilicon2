@@ -1131,14 +1131,14 @@ class SCSilicon2:
 
             if not os.path.exists(clone_cell_bam_dir):
                 os.makedirs(clone_cell_bam_dir)
-
+            
+            # run samtools to subsampling
+            logging.info('Samtools downsampling bam for {0}...'.format(clone))
             for i in range(clone_cell_no):
                 cell_name = clone + '_cell' + str(i+1)
                 barcodes.append(cell_name)
-                cell_bam_file = os.path.join(clone_cell_bam_dir, cell_name)
-
-                # run samtools to subsampling
-                logging.info('Samtools downsampling bam for {0}...'.format(clone))
+                cell_bam_file = os.path.join(clone_cell_bam_dir, cell_name+'.bam')
+               
                 command = "{0} view -b -s {1} {2} > {3}".format(self.samtools_path, cell_ratio, clone_bam_file, cell_bam_file)
                 code = os.system(command)
 
