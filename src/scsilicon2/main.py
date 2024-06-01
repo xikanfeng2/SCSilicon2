@@ -1072,46 +1072,81 @@ class SCSilicon2:
             dedup_bam_file = os.path.join(bam_dir, clone+".sorted.dedup.bam")
             dedup_metrics_file = os.path.join(bam_dir, clone+".sorted.dedup.metrics.txt")
 
-            # run bwa
-            # logging.info('BWA alignment for {0}...'.format(clone))
-            # command = "{0} mem -M -t {1} {2} {3} {4} > {5}".format(self.bwa_path, self.bwa_thread, self.ref_genome, fq1, fq2, sam_file)
+            #run bwa
+            logging.info('BWA alignment for {0}...'.format(clone))
+            command = "{0} mem -M -t {1} {2} {3} {4} > {5}".format(self.bwa_path, self.bwa_thread, self.ref_genome, fq1, fq2, sam_file)
+            code = os.system(command)
+
+            # samtools sam to bam
+            logging.info('Samtools sam to bam for {0}...'.format(clone))
+            command = "{0} view -bS {1} > {2}".format(self.samtools_path, sam_file, bam_file)
+            code = os.system(command)
+
+            # # run picard sort
+            # logging.info('Picard MarkDuplicates for {0}...'.format(clone))
+            # command = """java -Xmx40G -Djava.io.tmpdir={3} -jar {0} SortSam \
+            #             INPUT={1} OUTPUT={2} \
+            #             SORT_ORDER=coordinate TMP_DIR={3}""".format(self.picard_path, bam_file, sorted_bam_file, picard_tmp_dir)
             # code = os.system(command)
 
-            # # samtools sam to bam
-            # logging.info('Samtools sam to bam for {0}...'.format(clone))
-            # command = "{0} view -bS {1} > {2}".format(self.samtools_path, sam_file, bam_file)
+            # #run samtools build index
+            # logging.info('Samtools build index for {0}...'.format(clone))
+            # command = "{0} index {1}".format(self.samtools_path, sorted_bam_file)
             # code = os.system(command)
 
-            # run picard sort
-            logging.info('Picard MarkDuplicates for {0}...'.format(clone))
-            command = """java -Xmx40G -Djava.io.tmpdir={3} -jar {0} SortSam \
-                        INPUT={1} OUTPUT={2} \
-                        SORT_ORDER=coordinate TMP_DIR={3}""".format(self.picard_path, bam_file, sorted_bam_file, picard_tmp_dir)
-            code = os.system(command)
+            # # run picard dedup
+            # logging.info('Picard MarkDuplicates for {0}...'.format(clone))
+            # command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} MarkDuplicates \
+            #             REMOVE_DUPLICATES=true \
+            #             I={1} O={2} \
+            #             METRICS_FILE={3} \
+            #             PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
+            #             PROGRAM_GROUP_NAME=MarkDuplicates TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
+            # code = os.system(command)
 
-            #run samtools build index
-            logging.info('Samtools build index for {0}...'.format(clone))
-            command = "{0} index {1}".format(self.samtools_path, sorted_bam_file)
-            code = os.system(command)
-
-            # run picard dedup
-            logging.info('Picard MarkDuplicates for {0}...'.format(clone))
-            command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} MarkDuplicates \
-                        REMOVE_DUPLICATES=true \
-                        I={1} O={2} \
-                        METRICS_FILE={3} \
-                        PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
-                        PROGRAM_GROUP_NAME=MarkDuplicates TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
-            code = os.system(command)
-
-             # run picard buildindex
-            logging.info('Picard BuildBamIndex for {0}...'.format(clone))
-            command = "java -Djava.io.tmpdir={4} -jar {0} BuildBamIndex I={1} -Djava.io.tmpdir={2} TMP_DIR={2}".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
-            code = os.system(command)
+            #  # run picard buildindex
+            # logging.info('Picard BuildBamIndex for {0}...'.format(clone))
+            # command = "java -Djava.io.tmpdir={4} -jar {0} BuildBamIndex I={1} -Djava.io.tmpdir={2} TMP_DIR={2}".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
+            # code = os.system(command)
             # break
 
+            # clear fastq and sam file
             # os.remove(fq1)
             # os.remove(fq2)
+            # os.remove(sam_file)
+
+    def downsampling_bam(self):
+        bam_dir = os.path.join(self.outdir, 'bam')
+        barcodes = []
+        files = glob(bam_dir+"/*.bam")
+        clones = utils.get_all_clones(files)
+        assign_cells = utils.assign_cells_to_clones(self.cell_no, self.clone_no)
+        cell_ratio = round(self.cell_coverage/self.clone_coverage)
+
+        for index, clone in enumerate(clones):
+            clone_bam_file = os.path.join(bam_dir, clone+".bam")
+            clone_cell_no = assign_cells[index]
+            clone_cell_bam_dir = os.path.join(self.outdir, 'bam', clone)
+
+            if not os.path.exists(clone_cell_bam_dir):
+                os.makedirs(clone_cell_bam_dir)
+
+            for i in range(clone_cell_no):
+                cell_name = clone + '_cell' + str(i+1)
+                barcodes.append(cell_name)
+                cell_bam_file = os.path.join(clone_cell_bam_dir, cell_name)
+
+                # run samtools to subsampling
+                logging.info('Samtools downsampling bam for {0}...'.format(clone))
+                command = "{0} view -b -s {1} {2} > {3}".format(self.samtools_path, cell_ratio, clone_bam_file, cell_bam_file)
+                code = os.system(command)
+
+        # write barcodes file
+        profile_dir = os.path.join(self.outdir, 'profile')
+        barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
+        with open(barcodes_file, 'w') as output:
+            for barcode in barcodes:
+                output.write(barcode+'\n')
 
     def sim_dataset(self):
         logging.info("Start simulation process...")
