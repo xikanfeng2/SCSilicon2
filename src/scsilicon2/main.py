@@ -11,7 +11,6 @@ from collections import deque
 from glob import glob
 from multiprocessing.pool import ThreadPool as Pool
 
-logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
@@ -55,6 +54,13 @@ class SCSilicon2:
         self.samples = dict.fromkeys(['cell' + str(i+1) for i in range(self.cell_no)])
         for sample in self.samples:
             self.samples[sample] = {}
+        
+        # config log
+        log_file = os.path.join(self.outdir, 'log.txt')
+        logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO, handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler(),
+        ])
 
 
     def _check_params(self):
