@@ -10,6 +10,7 @@ from . import random_tree
 from collections import deque
 from glob import glob
 from multiprocessing.pool import ThreadPool as Pool
+from pathlib import Path
 
 pd.options.mode.chained_assignment = None
 
@@ -1119,7 +1120,7 @@ class SCSilicon2:
         bam_dir = os.path.join(self.outdir, 'bam')
         barcodes = []
         files = glob(bam_dir+"/*.bam")
-        clones = utils.get_all_clones(files)
+        clones = [Path(file).stem for file in files]
         assign_cells = utils.assign_cells_to_clones(self.cell_no, self.clone_no)
         cell_ratio = round(self.cell_coverage/self.clone_coverage)
 
