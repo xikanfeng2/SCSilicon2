@@ -1084,9 +1084,9 @@ class SCSilicon2:
 
             # run picard sort
             logging.info('Picard MarkDuplicates for {0}...'.format(clone))
-            command = """java -Xmx40G -jar {0} SortSam \
+            command = """java -Xmx40G -Djava.io.tmpdir={3} -jar {0} SortSam \
                         INPUT={1} OUTPUT={2} \
-                        SORT_ORDER=coordinate -Djava.io.tmpdir={3} TMP_DIR={3}""".format(self.picard_path, bam_file, sorted_bam_file, picard_tmp_dir)
+                        SORT_ORDER=coordinate TMP_DIR={3}""".format(self.picard_path, bam_file, sorted_bam_file, picard_tmp_dir)
             code = os.system(command)
 
             #run samtools build index
@@ -1096,17 +1096,17 @@ class SCSilicon2:
 
             # # run picard dedup
             # logging.info('Picard MarkDuplicates for {0}...'.format(clone))
-            # command = """java -Xmx40G -jar {0} MarkDuplicates \
+            # command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} MarkDuplicates \
             #             REMOVE_DUPLICATES=true \
             #             I={1} O={2} \
             #             METRICS_FILE={3} \
             #             PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
-            #             PROGRAM_GROUP_NAME=MarkDuplicates -Djava.io.tmpdir={4} TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
+            #             PROGRAM_GROUP_NAME=MarkDuplicates TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
             # code = os.system(command)
 
             #  # run picard buildindex
             # logging.info('Picard BuildBamIndex for {0}...'.format(clone))
-            # command = "java -jar {0} BuildBamIndex I={1} -Djava.io.tmpdir={2} TMP_DIR={2}".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
+            # command = "java -Djava.io.tmpdir={4} -jar {0} BuildBamIndex I={1} -Djava.io.tmpdir={2} TMP_DIR={2}".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
             # code = os.system(command)
             break
 
