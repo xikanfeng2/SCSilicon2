@@ -1064,14 +1064,14 @@ class SCSilicon2:
             dedup_metrics_file = os.path.join(bam_dir, clone+".sorted.dedup.metrics.txt")
 
             # run bwa
-            logging.info('BWA alignment for {0}...'.format(clone))
-            command = "{0} mem -M -t {1} {2} {3} {4} > {5}".format(self.bwa_path, self.bwa_thread, self.ref_genome, fq1, fq2, sam_file)
-            code = os.system(command)
+            # logging.info('BWA alignment for {0}...'.format(clone))
+            # command = "{0} mem -M -t {1} {2} {3} {4} > {5}".format(self.bwa_path, self.bwa_thread, self.ref_genome, fq1, fq2, sam_file)
+            # code = os.system(command)
 
-            # samtools sam to bam
-            logging.info('Samtools sam to bam for {0}...'.format(clone))
-            command = "{0} view -bS {1} > {2}".format(self.samtools_path, sam_file, bam_file)
-            code = os.system(command)
+            # # samtools sam to bam
+            # logging.info('Samtools sam to bam for {0}...'.format(clone))
+            # command = "{0} view -bS {1} > {2}".format(self.samtools_path, sam_file, bam_file)
+            # code = os.system(command)
 
             # run picard sort
             logging.info('Picard MarkDuplicates for {0}...'.format(clone))
