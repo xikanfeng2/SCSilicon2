@@ -1090,24 +1090,25 @@ class SCSilicon2:
             code = os.system(command)
 
             #run samtools build index
-            logging.info('Samtools build index for {0}...'.format(clone))
-            command = "{0} index {1}".format(self.samtools_path, sorted_bam_file)
-            code = os.system(command)
+            # logging.info('Samtools build index for {0}...'.format(clone))
+            # command = "{0} index {1}".format(self.samtools_path, sorted_bam_file)
+            # code = os.system(command)
 
-            # run picard dedup
-            logging.info('Picard MarkDuplicates for {0}...'.format(clone))
-            command = """java -Xmx40G -jar {0} MarkDuplicates \
-                        REMOVE_DUPLICATES=true \
-                        I={1} O={2} \
-                        METRICS_FILE={3} \
-                        PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
-                        PROGRAM_GROUP_NAME=MarkDuplicates -Djava.io.tmpdir={4} TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
-            code = os.system(command)
+            # # run picard dedup
+            # logging.info('Picard MarkDuplicates for {0}...'.format(clone))
+            # command = """java -Xmx40G -jar {0} MarkDuplicates \
+            #             REMOVE_DUPLICATES=true \
+            #             I={1} O={2} \
+            #             METRICS_FILE={3} \
+            #             PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
+            #             PROGRAM_GROUP_NAME=MarkDuplicates -Djava.io.tmpdir={4} TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
+            # code = os.system(command)
 
-             # run picard buildindex
-            logging.info('Picard BuildBamIndex for {0}...'.format(clone))
-            command = "java -jar {0} BuildBamIndex I={1} -Djava.io.tmpdir={2} TMP_DIR={2}".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
-            code = os.system(command)
+            #  # run picard buildindex
+            # logging.info('Picard BuildBamIndex for {0}...'.format(clone))
+            # command = "java -jar {0} BuildBamIndex I={1} -Djava.io.tmpdir={2} TMP_DIR={2}".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
+            # code = os.system(command)
+            break
 
             # os.remove(fq1)
             # os.remove(fq2)
