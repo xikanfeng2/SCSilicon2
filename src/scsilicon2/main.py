@@ -1139,7 +1139,7 @@ class SCSilicon2:
                 barcodes.append(cell_name)
                 cell_bam_file = os.path.join(clone_cell_bam_dir, cell_name+'.bam')
                
-                command = "{0} view -b -s {1} {2} > {3}".format(self.samtools_path, cell_ratio, clone_bam_file, cell_bam_file)
+                command = "{0} view -b -s {1}.{2} {3} > {4}".format(self.samtools_path, str(i), cell_ratio, clone_bam_file, cell_bam_file)
                 print(command)
                 code = os.system(command)
 
