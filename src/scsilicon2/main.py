@@ -1122,7 +1122,7 @@ class SCSilicon2:
         files = glob(bam_dir+"/*.bam")
         clones = [Path(file).stem for file in files]
         assign_cells = utils.assign_cells_to_clones(self.cell_no, self.clone_no)
-        cell_ratio = round(self.cell_coverage/self.clone_coverage)
+        cell_ratio = round(self.cell_coverage/self.clone_coverage, 2)
 
         for index, clone in enumerate(clones):
             clone_bam_file = os.path.join(bam_dir, clone+".bam")
