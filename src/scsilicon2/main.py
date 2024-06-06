@@ -1150,6 +1150,56 @@ class SCSilicon2:
             for barcode in barcodes:
                 output.write(barcode+'\n')
 
+    def process_cell_bam(self):
+        bam_dir = os.path.join(self.outdir, 'bam')
+        barcodes = []
+        picard_tmp_dir = os.path.join(self.outdir, 'tmp')
+
+        if not os.path.exists(picard_tmp_dir):
+            os.makedirs(picard_tmp_dir)
+
+        # write barcodes file
+        profile_dir = os.path.join(self.outdir, 'profile')
+        barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
+        with open(barcodes_file, 'r') as output:
+            for line in output.readlines():
+                barcodes.append(line.strip())
+        
+        for barcode in barcodes:
+            clone = barcode.split('-')[0]
+            bam_file = os.path.join(bam_dir, clone, barcode+'.bam')
+            sorted_bam_file = os.path.join(bam_dir, clone, barcode+".sorted.bam")
+            dedup_bam_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.bam")
+            dedup_metrics_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.metrics.txt")
+
+            # run picard sort
+            logging.info('Picard MarkDuplicates for {0}...'.format(barcode))
+            command = """java -Xmx40G -Djava.io.tmpdir={3} -jar {0} SortSam \
+                        INPUT={1} OUTPUT={2} \
+                        SORT_ORDER=coordinate TMP_DIR={3}""".format(self.picard_path, bam_file, sorted_bam_file, picard_tmp_dir)
+            code = os.system(command)
+
+            #run samtools build index
+            logging.info('Samtools build index for {0}...'.format(barcode))
+            command = "{0} index {1}".format(self.samtools_path, sorted_bam_file)
+            code = os.system(command)
+
+            # run picard dedup
+            logging.info('Picard MarkDuplicates for {0}...'.format(barcode))
+            command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} MarkDuplicates \
+                        REMOVE_DUPLICATES=true \
+                        I={1} O={2} \
+                        METRICS_FILE={3} \
+                        PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
+                        PROGRAM_GROUP_NAME=MarkDuplicates TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
+            code = os.system(command)
+
+             # run picard buildindex
+            logging.info('Picard BuildBamIndex for {0}...'.format(barcode))
+            command = "java -Djava.io.tmpdir={4} -jar {0} BuildBamIndex I={1} -Djava.io.tmpdir={2} TMP_DIR={2} VALIDATION_STRINGENCY=LENIENT".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
+            code = os.system(command)
+
+
     def sim_dataset(self):
         logging.info("Start simulation process...")
         fasta_dir = os.path.join(self.outdir, 'fasta')
