@@ -1166,7 +1166,7 @@ class SCSilicon2:
                 barcodes.append(line.strip())
         
         for barcode in barcodes:
-            clone = barcode.split('-')[0]
+            clone = barcode.split('_')[0]
             bam_file = os.path.join(bam_dir, clone, barcode+'.bam')
             sorted_bam_file = os.path.join(bam_dir, clone, barcode+".sorted.bam")
             dedup_bam_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.bam")
