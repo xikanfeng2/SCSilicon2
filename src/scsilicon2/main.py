@@ -1196,7 +1196,7 @@ class SCSilicon2:
 
              # run picard buildindex
             logging.info('Picard BuildBamIndex for {0}...'.format(barcode))
-            command = "java -Djava.io.tmpdir={4} -jar {0} BuildBamIndex I={1} TMP_DIR={2} VALIDATION_STRINGENCY=LENIENT".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
+            command = "java -Djava.io.tmpdir={2} -jar {0} BuildBamIndex I={1} TMP_DIR={2} VALIDATION_STRINGENCY=LENIENT".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
             code = os.system(command)
 
 
