@@ -1172,6 +1172,7 @@ class SCSilicon2:
             sorted_bam_file = os.path.join(bam_dir, clone, barcode+".sorted.bam")
             dedup_bam_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.bam")
             dedup_metrics_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.metrics.txt")
+            rg_dedup_bam_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.rg.bam")
 
             # run picard sort
             logging.info('Picard MarkDuplicates for {0}...'.format(barcode))
@@ -1195,9 +1196,21 @@ class SCSilicon2:
                         PROGRAM_GROUP_NAME=MarkDuplicates TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
             code = os.system(command)
 
+            # run picard add read group
+            logging.info('Picard MarkDuplicates for {0}...'.format(barcode))
+            command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} AddOrReplaceReadGroups \
+                        REMOVE_DUPLICATES=true \
+                        INPUT={1} OUTPUT={2} \
+                        RGID={3} \
+                        RGLB=genome \
+                        RGPL=ILLUMINA \
+                        RGPU=machine \
+                        RGSM={3} TMP_DIR={4}""".format(self.picard_path, dedup_bam_file, rg_dedup_bam_file, barcode, picard_tmp_dir)
+            code = os.system(command)
+
              # run picard buildindex
             logging.info('Picard BuildBamIndex for {0}...'.format(barcode))
-            command = "java -Djava.io.tmpdir={2} -jar {0} BuildBamIndex I={1} TMP_DIR={2} VALIDATION_STRINGENCY=LENIENT".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
+            command = "java -Djava.io.tmpdir={2} -jar {0} BuildBamIndex I={1} TMP_DIR={2} VALIDATION_STRINGENCY=LENIENT".format(self.picard_path, rg_dedup_bam_file, picard_tmp_dir)
             code = os.system(command)
 
     def call_snp_for_cell(self):
