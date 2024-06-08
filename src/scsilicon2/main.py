@@ -15,7 +15,7 @@ from pathlib import Path
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=15, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar'):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=15, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar', gatk_path='gatk'):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.ignore_file = ignore_file
@@ -49,6 +49,7 @@ class SCSilicon2:
         self.samtools_path = samtools_path
         self.bwa_path = bwa_path
         self.picard_path = picard_path
+        self.gatk_path = gatk_path
         self.chrom_sizes = {}
         self.ignore_list = []
         self._check_params()
@@ -1197,6 +1198,37 @@ class SCSilicon2:
              # run picard buildindex
             logging.info('Picard BuildBamIndex for {0}...'.format(barcode))
             command = "java -Djava.io.tmpdir={2} -jar {0} BuildBamIndex I={1} TMP_DIR={2} VALIDATION_STRINGENCY=LENIENT".format(self.picard_path, dedup_bam_file, picard_tmp_dir)
+            code = os.system(command)
+
+    def call_snp_for_cell(self):
+        bam_dir = os.path.join(self.outdir, 'bam')
+        vcf_dir = os.path.join(self.outdir, 'vcf')
+        barcodes = []
+        picard_tmp_dir = os.path.join(self.outdir, 'tmp')
+
+        if not os.path.exists(picard_tmp_dir):
+            os.makedirs(picard_tmp_dir)
+        
+        if not os.path.exists(vcf_dir):
+            os.makedirs(picard_tmp_dir)
+
+        # write barcodes file
+        profile_dir = os.path.join(self.outdir, 'profile')
+        barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
+        with open(barcodes_file, 'r') as output:
+            for line in output.readlines():
+                barcodes.append(line.strip())
+        for barcode in barcodes:
+            clone = barcode.split('_')[0]
+            bam_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.bam")
+            clone_vcf_dir = os.path.join(vcf_dir, clone)
+            if not os.path.exists(clone_vcf_dir):
+                os.makedirs(picard_tmp_dir)
+            cell_vcf_file = os.path.join(clone_vcf_dir, barcode+".vcf.gz")
+            
+            #run gatk call snp
+            logging.info('GATK call snp for {0}...'.format(barcode))
+            command = """{0} --java-options "-Xmx40G" HaplotypeCaller -R {1} -I {2} -O {3} -ERC GVCF""".format(self.gatk_path, self.ref_genome, bam_file, cell_vcf_file)
             code = os.system(command)
 
 
