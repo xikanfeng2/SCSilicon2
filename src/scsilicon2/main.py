@@ -1225,7 +1225,9 @@ class SCSilicon2:
             #run gatk call snp
             logging.info('GATK call snp for {0}...'.format(barcode))
             command = """{0} --java-options "-Xmx40G" HaplotypeCaller -R {1} -I {2} -O {3} -ERC GVCF""".format(self.gatk_path, self.ref_genome, bam_file, cell_vcf_file)
+            print(command)
             code = os.system(command)
+            break
 
 
     def sim_dataset(self):
