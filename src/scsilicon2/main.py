@@ -1204,13 +1204,9 @@ class SCSilicon2:
         bam_dir = os.path.join(self.outdir, 'bam')
         vcf_dir = os.path.join(self.outdir, 'vcf')
         barcodes = []
-        picard_tmp_dir = os.path.join(self.outdir, 'tmp')
-
-        if not os.path.exists(picard_tmp_dir):
-            os.makedirs(picard_tmp_dir)
         
         if not os.path.exists(vcf_dir):
-            os.makedirs(picard_tmp_dir)
+            os.makedirs(vcf_dir)
 
         # write barcodes file
         profile_dir = os.path.join(self.outdir, 'profile')
@@ -1223,7 +1219,7 @@ class SCSilicon2:
             bam_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.bam")
             clone_vcf_dir = os.path.join(vcf_dir, clone)
             if not os.path.exists(clone_vcf_dir):
-                os.makedirs(picard_tmp_dir)
+                os.makedirs(clone_vcf_dir)
             cell_vcf_file = os.path.join(clone_vcf_dir, barcode+".vcf.gz")
             
             #run gatk call snp
