@@ -15,7 +15,7 @@ from pathlib import Path
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=15, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar', gatk_path='gatk'):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=15, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar', gatk_path='gatk', bedtools_path='bedtools'):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.ignore_file = ignore_file
@@ -50,6 +50,7 @@ class SCSilicon2:
         self.bwa_path = bwa_path
         self.picard_path = picard_path
         self.gatk_path = gatk_path
+        self.bedtools_path = bedtools_path
         self.chrom_sizes = {}
         self.ignore_list = []
         self._check_params()
@@ -1241,7 +1242,67 @@ class SCSilicon2:
             print(command)
             code = os.system(command)
             break
+    
+    def get_bam_coverage(self):
+        self._get_chrom_sizes()
+        ref = self._split_chr_to_bins('all')
 
+        bam_dir = os.path.join(self.outdir, 'bam')
+        cov_dir = os.path.join(self.outdir, 'coverage')
+        cov_bed_fn = os.path.join(cov_dir, "bedtools_cov.bed")
+
+        # bam_files = []
+        
+        if not os.path.exists(cov_dir):
+            os.makedirs(cov_dir)
+
+        # write barcodes file
+        profile_dir = os.path.join(self.outdir, 'profile')
+        # barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
+        bin_file = os.path.join(profile_dir, 'bin_profile.bed')
+
+        # write bin file
+        with open(bin_file, 'w') as output:
+            for index, row in ref.iterrows():
+                output.write('{}\t{}\t{}\tbin_{}\n'.format(row[0], row[1], row[2], str(index+1)))
+
+        # with open(barcodes_file, 'r') as output:
+        #     for line in output.readlines():
+        #         barcode = line.strip()
+        #         clone = barcode.split('_')[0]
+        #         bam_file = os.path.join(self.outdir, 'bam', clone, barcode+'.bam')
+        #         bam_files.append(bam_file)
+
+        bam_files = [os.path.join(self.outdir, 'bam', 'clone7', 'clone7_cell'+str(i)+'.sorted.bam') for i in range(1, 11)]
+        
+        #run bedtools calculate coverage
+        logging.info('bedtools multicov for {0}...'.format('clone7'))
+        command = '{0} multicov -bams {1} -bed {2} -q 60 > {3}'.format(self.bedtools_path, ' '.join(bam_files), bin_file, cov_bed_fn)
+        print(command)
+        code = os.system(command)
+        
+
+        # cov_bed_fn = os.path.join(out_dir, "bedtools_cov.bed")
+        # coverage_fn = os.path.join(out_dir, "bedtools_cov.tsv")
+
+        # # mapping quality
+        # cmd = 'bedtools multicov -bams {} -bed {} -q 60 > {}'.format(' '.join(bam_fns), bin_fn, cov_bed_fn)
+        # subprocess.call(cmd, shell=True)
+        # cmd = '(echo "chrom\tstart\tend\t{}"; cat {}) > {}'.format('\t'.join(bam_fns), cov_bed_fn, coverage_fn)
+        # subprocess.call(cmd, shell=True)
+        # cmd = 'rm {}'.format(cov_bed_fn)
+        # subprocess.call(cmd, shell=True)
+
+        # cov_bed_fn = os.path.join(out_dir, "samtools_cov.bed")
+        # coverage_fn = os.path.join(out_dir, "samtools_cov.tsv")
+
+        # # mapping quality
+        # cmd = 'samtools bedcov -Q 60 -j {} {} > {}'.format(bin_fn, bam_fn, cov_bed_fn)
+        # subprocess.call(cmd, shell=True)
+        # cmd = '(echo "chrom\tstart\tend\t{}"; cat {}) > {}'.format('\t'.join(bam_fns), cov_bed_fn, coverage_fn)
+        # subprocess.call(cmd, shell=True)
+        # cmd = 'rm {}'.format(cov_bed_fn)
+        # subprocess.call(cmd, shell=True)
 
     def sim_dataset(self):
         logging.info("Start simulation process...")
