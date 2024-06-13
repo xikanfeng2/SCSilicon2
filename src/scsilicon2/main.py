@@ -11,11 +11,13 @@ from collections import deque
 from glob import glob
 from multiprocessing.pool import ThreadPool as Pool
 from pathlib import Path
+from intervaltree import Interval, IntervalTree
+
 
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=15, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar', gatk_path='gatk', bedtools_path='bedtools'):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=15, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, repeat_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar', gatk_path='gatk', bedtools_path='bedtools'):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.ignore_file = ignore_file
@@ -42,9 +44,10 @@ class SCSilicon2:
         self.mirrored_cnv_no = mirrored_cnv_no
         self.mode = mode
         if barcodes_file == None:
-            barcodes_file = os.path.join(utils.root_path(), 'data/barcodes.txt')
+            self.barcodes_file = os.path.join(utils.root_path(), 'data/barcodes.txt')
         else:
-            barcodes_file = barcodes_file
+            self.barcodes_file = barcodes_file
+        self.repeat_file = repeat_file
         self.wgsim_path = wgsim_path
         self.samtools_path = samtools_path
         self.bwa_path = bwa_path
@@ -347,6 +350,33 @@ class SCSilicon2:
         with open(phaselist, 'w') as output:
             for g in sorted(phases.keys(), key=(lambda x : (int(''.join([l for l in x[0] if l.isdigit()])), x[1]))):
                 output.write('{},{},{}\n'.format(g[0], g[1], phases[g]))
+
+    def _filter_repeat_region(self, ref):
+        # df[df['name'].str.contains('#DNA')][['#chrom','chromStart','chromEnd']].to_csv('dna_repeat.bed', sep='\t', index=False, header=False)
+        
+        ref_bed = os.path.join(self.outdir, 'profile/ref.bed')
+        ref.to_csv(ref_bed, sep='\t', header=False, index=False)
+        
+
+        # merge region in repeat masker bed
+        # use awk 'BEGIN { OFS = "\t" }{print $1, $2, $3}' rp-4 > repeat.bed to process the repeat masker file
+        rep_tmp_bed = os.path.join(self.outdir, 'profile/rep.tmp.bed')
+        command = "{0} merge -i {1} > {2}".format(self.bedtools_path, self.repeat_file, rep_tmp_bed)
+        code = os.system(command)
+
+        # get overlap between ref bed with repeat bed
+        overlap_bed = os.path.join(self.outdir, 'profile/overlap.bed')
+        command = "{0} intersect -a {1} -b {2} -wao > {3}".format(self.bedtools_path, ref_bed, rep_tmp_bed, overlap_bed)
+        code = os.system(command)
+        
+        # calculate overlap ratio
+        df = pd.read_csv(overlap_bed, sep='\t', header=None)
+        df.columns = ["chrom1", "start1", "end1", "chrom2", "start2", "end2", "overlap"]
+        grouped_df = df.groupby(["chrom1", "start1", "end1"])["overlap"].sum().reset_index()
+        grouped_df["length"] = grouped_df["end1"] - grouped_df["start1"] + 1
+        grouped_df["overlap_ratio"] = grouped_df["overlap"] / grouped_df["length"]
+
+        return grouped_df
 
     def _split_chr_to_bins(self, chrom):
         """Split chromosomes to fixed-lenght bins
@@ -1175,32 +1205,31 @@ class SCSilicon2:
             dedup_metrics_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.metrics.txt")
             rg_dedup_bam_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.rg.bam")
 
-            # run picard sort
-            logging.info('Picard MarkDuplicates for {0}...'.format(barcode))
-            command = """java -Xmx40G -Djava.io.tmpdir={3} -jar {0} SortSam \
-                        INPUT={1} OUTPUT={2} \
-                        SORT_ORDER=coordinate TMP_DIR={3}""".format(self.picard_path, bam_file, sorted_bam_file, picard_tmp_dir)
-            code = os.system(command)
+            # # run picard sort
+            # logging.info('Picard SortSam for {0}...'.format(barcode))
+            # command = """java -Xmx40G -Djava.io.tmpdir={3} -jar {0} SortSam \
+            #             INPUT={1} OUTPUT={2} \
+            #             SORT_ORDER=coordinate TMP_DIR={3}""".format(self.picard_path, bam_file, sorted_bam_file, picard_tmp_dir)
+            # code = os.system(command)
 
-            #run samtools build index
-            logging.info('Samtools build index for {0}...'.format(barcode))
-            command = "{0} index {1}".format(self.samtools_path, sorted_bam_file)
-            code = os.system(command)
+            # #run samtools build index
+            # logging.info('Samtools build index for {0}...'.format(barcode))
+            # command = "{0} index {1}".format(self.samtools_path, sorted_bam_file)
+            # code = os.system(command)
 
-            # run picard dedup
-            logging.info('Picard MarkDuplicates for {0}...'.format(barcode))
-            command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} MarkDuplicates \
-                        REMOVE_DUPLICATES=true \
-                        I={1} O={2} \
-                        METRICS_FILE={3} \
-                        PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
-                        PROGRAM_GROUP_NAME=MarkDuplicates TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
-            code = os.system(command)
+            # # run picard dedup
+            # logging.info('Picard MarkDuplicates for {0}...'.format(barcode))
+            # command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} MarkDuplicates \
+            #             REMOVE_DUPLICATES=true \
+            #             I={1} O={2} \
+            #             METRICS_FILE={3} \
+            #             PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_VERSION=null \
+            #             PROGRAM_GROUP_NAME=MarkDuplicates TMP_DIR={4}""".format(self.picard_path, sorted_bam_file, dedup_bam_file, dedup_metrics_file, picard_tmp_dir)
+            # code = os.system(command)
 
             # run picard add read group
-            logging.info('Picard MarkDuplicates for {0}...'.format(barcode))
+            logging.info('Picard AddOrReplaceReadGroups for {0}...'.format(barcode))
             command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} AddOrReplaceReadGroups \
-                        REMOVE_DUPLICATES=true \
                         INPUT={1} OUTPUT={2} \
                         RGID={3} \
                         RGLB=genome \
