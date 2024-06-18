@@ -1206,19 +1206,19 @@ class SCSilicon2:
             rg_dedup_bam_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.rg.bam")
 
             # # run picard sort
-            # logging.info('Picard SortSam for {0}...'.format(barcode))
+            # logging.info('Picard SortSam for {0}...'.format(bam_file))
             # command = """java -Xmx40G -Djava.io.tmpdir={3} -jar {0} SortSam \
             #             INPUT={1} OUTPUT={2} \
             #             SORT_ORDER=coordinate TMP_DIR={3}""".format(self.picard_path, bam_file, sorted_bam_file, picard_tmp_dir)
             # code = os.system(command)
 
             # #run samtools build index
-            # logging.info('Samtools build index for {0}...'.format(barcode))
+            # logging.info('Samtools build index for {0}...'.format(sorted_bam_file))
             # command = "{0} index {1}".format(self.samtools_path, sorted_bam_file)
             # code = os.system(command)
 
             # # run picard dedup
-            # logging.info('Picard MarkDuplicates for {0}...'.format(barcode))
+            # logging.info('Picard MarkDuplicates for {0}...'.format(sorted_bam_file))
             # command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} MarkDuplicates \
             #             REMOVE_DUPLICATES=true \
             #             I={1} O={2} \
@@ -1228,7 +1228,7 @@ class SCSilicon2:
             # code = os.system(command)
 
             # run picard add read group
-            logging.info('Picard AddOrReplaceReadGroups for {0}...'.format(barcode))
+            logging.info('Picard AddOrReplaceReadGroups for {0}...'.format(dedup_bam_file))
             command = """java -Xmx40G -Djava.io.tmpdir={4} -jar {0} AddOrReplaceReadGroups \
                         INPUT={1} OUTPUT={2} \
                         RGID={3} \
@@ -1239,8 +1239,12 @@ class SCSilicon2:
             code = os.system(command)
 
              # run picard buildindex
-            logging.info('Picard BuildBamIndex for {0}...'.format(barcode))
-            command = "java -Djava.io.tmpdir={2} -jar {0} BuildBamIndex I={1} TMP_DIR={2} VALIDATION_STRINGENCY=LENIENT".format(self.picard_path, rg_dedup_bam_file, picard_tmp_dir)
+            # logging.info('samtools BuildBamIndex for {0}...'.format(barcode))
+            # command = "java -Djava.io.tmpdir={2} -jar {0} BuildBamIndex I={1} O= TMP_DIR={2} VALIDATION_STRINGENCY=LENIENT".format(self.picard_path, rg_dedup_bam_file, picard_tmp_dir)
+            # code = os.system(command)
+
+            logging.info('Samtools build index for {0}...'.format(rg_dedup_bam_file))
+            command = "{0} index {1}".format(self.samtools_path, rg_dedup_bam_file)
             code = os.system(command)
 
     def call_snp_for_cell(self):
@@ -1277,17 +1281,19 @@ class SCSilicon2:
         ref = self._split_chr_to_bins('all')
 
         bam_dir = os.path.join(self.outdir, 'bam')
-        cov_dir = os.path.join(self.outdir, 'coverage')
+        cov_dir = os.path.join(self.outdir, 'profile')
         cov_bed_fn = os.path.join(cov_dir, "bedtools_cov.bed")
+        cov_csv_fn = os.path.join(cov_dir, "coverage.tsv")
 
-        # bam_files = []
-        
+
+        bam_files = []
+        barcodes = []
         if not os.path.exists(cov_dir):
             os.makedirs(cov_dir)
 
         # write barcodes file
         profile_dir = os.path.join(self.outdir, 'profile')
-        # barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
+        barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
         bin_file = os.path.join(profile_dir, 'bin_profile.bed')
 
         # write bin file
@@ -1295,12 +1301,13 @@ class SCSilicon2:
             for index, row in ref.iterrows():
                 output.write('{}\t{}\t{}\tbin_{}\n'.format(row[0], row[1], row[2], str(index+1)))
 
-        # with open(barcodes_file, 'r') as output:
-        #     for line in output.readlines():
-        #         barcode = line.strip()
-        #         clone = barcode.split('_')[0]
-        #         bam_file = os.path.join(self.outdir, 'bam', clone, barcode+'.bam')
-        #         bam_files.append(bam_file)
+        with open(barcodes_file, 'r') as output:
+            for line in output.readlines():
+                barcode = line.strip()
+                barcodes.append(barcode)
+                clone = barcode.split('_')[0]
+                bam_file = os.path.join(self.outdir, 'bam', clone, barcode+'.bam')
+                bam_files.append(bam_file)
 
         bam_files = [os.path.join(self.outdir, 'bam', 'clone7', 'clone7_cell'+str(i)+'.sorted.bam') for i in range(1, 11)]
         
@@ -1310,7 +1317,12 @@ class SCSilicon2:
         print(command)
         code = os.system(command)
         
-
+        cov_data = pd.read_csv(cov_bed_fn, sep='\t', header=None)
+        indexes = cov_data[0] + ':' + cov_data[1].astype(str) + '-' + cov_data[2].astype(str)
+        cov_csv = cov_data.iloc[:,4:]
+        cov_csv.index = indexes
+        cov_csv.columns = barcodes
+        cov_csv.to_csv(cov_csv_fn, sep='\t')
         # cov_bed_fn = os.path.join(out_dir, "bedtools_cov.bed")
         # coverage_fn = os.path.join(out_dir, "bedtools_cov.tsv")
 
