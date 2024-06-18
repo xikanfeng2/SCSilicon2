@@ -1309,7 +1309,7 @@ class SCSilicon2:
                 bam_file = os.path.join(self.outdir, 'bam', clone, barcode+'.bam')
                 bam_files.append(bam_file)
 
-        bam_files = [os.path.join(self.outdir, 'bam', 'clone7', 'clone7_cell'+str(i)+'.sorted.bam') for i in range(1, 11)]
+        # bam_files = [os.path.join(self.outdir, 'bam', 'clone7', 'clone7_cell'+str(i)+'.sorted.bam') for i in range(1, 11)]
         
         #run bedtools calculate coverage
         logging.info('bedtools multicov for {0}...'.format('clone7'))
