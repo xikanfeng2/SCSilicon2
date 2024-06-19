@@ -1287,6 +1287,7 @@ class SCSilicon2:
             command = """{0} SelectVariants -select-type SNP -R {1} -V {2} -O {3}""".format(self.gatk_path, self.ref_genome, cell_vcf_file, cell_snp_vcf_file)
             print(command)
             code = os.system(command)
+            break
     
     def get_bam_coverage(self):
         self._get_chrom_sizes()
