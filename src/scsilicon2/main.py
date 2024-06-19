@@ -1274,7 +1274,7 @@ class SCSilicon2:
 
             #run bcftools call snp
             logging.info('bcftools call snp for {0}...'.format(barcode))
-            command = """{0} mpileup -f {0} {1} | bcftools call -mv -Oz -o {2}""".format(self.bcftools_path, self.ref_genome, bam_file, cell_vcf_file)
+            command = """{0} mpileup -f {1} {2} | bcftools call -mv -Oz -o {3}""".format(self.bcftools_path, self.ref_genome, bam_file, cell_vcf_file)
             print(command)
             code = os.system(command)
 
@@ -1287,7 +1287,6 @@ class SCSilicon2:
             command = """{0} SelectVariants -select-type SNP -R {1} -V {2} -O {3}""".format(self.gatk_path, self.ref_genome, cell_vcf_file, cell_snp_vcf_file)
             print(command)
             code = os.system(command)
-            break
     
     def get_bam_coverage(self):
         self._get_chrom_sizes()
