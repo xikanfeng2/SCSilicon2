@@ -17,7 +17,7 @@ from intervaltree import Interval, IntervalTree
 pd.options.mode.chained_assignment = None
 
 class SCSilicon2:
-    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=15, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, repeat_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar', gatk_path='gatk', bedtools_path='bedtools'):
+    def __init__(self, ref_genome, snp_file=None, ignore_file=None, outdir='./', clone_no=1, cell_no=2, max_cnv_tree_depth=4, bin_len=500000, snp_ratio=0.000000333, wgsim_thread=1, HEHO_ratio=0.5, cnv_prob_cutoff=0.8, clone_coverage=15, cell_coverage=0.5, reads_len=150, insertion_size=350, error_rate=0.02, WGD_no=0, WCL_no=0, CNL_LOH_no=10, CNN_LOH_no=10, GOH_no=10, mirrored_cnv_no=10, barcodes_file=None, repeat_file=None, mode=0, bwa_thread=1, wgsim_path='wgsim', samtools_path='samtools', bwa_path='bwa', picard_path='picard.jar', gatk_path='gatk', bedtools_path='bedtools', bcftools_path='bcftools', tabix_path='tabix'):
         self.ref_genome = ref_genome
         self.snp_file = snp_file
         self.ignore_file = ignore_file
@@ -54,6 +54,8 @@ class SCSilicon2:
         self.picard_path = picard_path
         self.gatk_path = gatk_path
         self.bedtools_path = bedtools_path
+        self.bcftools_path = bcftools_path
+        self.tabix_path = tabix_path
         self.chrom_sizes = {}
         self.ignore_list = []
         self._check_params()
@@ -1263,18 +1265,28 @@ class SCSilicon2:
                 barcodes.append(line.strip())
         for barcode in barcodes:
             clone = barcode.split('_')[0]
-            bam_file = os.path.join(bam_dir, clone, barcode+".sorted.dedup.bam")
+            bam_file = os.path.join(bam_dir, clone, barcode+".bam")
             clone_vcf_dir = os.path.join(vcf_dir, clone)
             if not os.path.exists(clone_vcf_dir):
                 os.makedirs(clone_vcf_dir)
             cell_vcf_file = os.path.join(clone_vcf_dir, barcode+".vcf.gz")
-            
-            #run gatk call snp
-            logging.info('GATK call snp for {0}...'.format(barcode))
-            command = """{0} --java-options "-Xmx40G" HaplotypeCaller -R {1} -I {2} -O {3} -ERC GVCF""".format(self.gatk_path, self.ref_genome, bam_file, cell_vcf_file)
+            cell_snp_vcf_file = os.path.join(clone_vcf_dir, barcode+".snp.vcf.gz")
+
+            #run bcftools call snp
+            logging.info('bcftools call snp for {0}...'.format(barcode))
+            command = """{0} mpileup -f {0} {1} | bcftools call -mv -Oz -o {2}""".format(self.bcftools_path, self.ref_genome, bam_file, cell_vcf_file)
             print(command)
             code = os.system(command)
-            break
+
+            logging.info('tabix index vcf.gz for {0}...'.format(barcode))
+            command = """{0} {1}""".format(self.tabix_path, cell_vcf_file)
+            print(command)
+            code = os.system(command)
+
+            logging.info('gatk select snp for {0}...'.format(barcode))
+            command = """{0} SelectVariants -select-type SNP -R {1} -V {2} -O {3}""".format(self.gatk_path, self.ref_genome, cell_vcf_file, cell_snp_vcf_file)
+            print(command)
+            code = os.system(command)
     
     def get_bam_coverage(self):
         self._get_chrom_sizes()
