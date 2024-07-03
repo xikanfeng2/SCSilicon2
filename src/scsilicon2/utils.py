@@ -2,6 +2,8 @@ import numbers
 import os
 import random
 import ntpath
+import scipy.sparse as sp
+import numpy as np
 
 def check_exist(**params):
     """Check that files are exist as expected
@@ -223,3 +225,21 @@ def get_all_clones(files):
 def root_path():
     return os.path.dirname(os.path.abspath(__file__))
 
+def vcf_to_mtx(input_file, output_mtx):
+    # 读取VCF文件中的信息
+    data = np.loadtxt(input_file, dtype=str, delimiter='\t')
+
+    # 提取行数、列数和非零元素数
+    rows = np.unique(data[:, 0])
+    cols = np.unique(data[:, 1])
+    nonzeros = len(data)
+
+    # 构建稀疏矩阵
+    mtx = sp.dok_matrix((len(rows), len(cols)), dtype=int)
+    for entry in data:
+        row = np.where(rows == entry[0])[0][0]
+        col = np.where(cols == entry[1])[0][0]
+        mtx[row, col] = int(entry[2])
+
+    # 保存为Matrix Market格式的稀疏矩阵
+    sp.save_npz(output_mtx, mtx.tocsr())

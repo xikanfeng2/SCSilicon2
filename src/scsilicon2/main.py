@@ -1291,9 +1291,13 @@ class SCSilicon2:
     def conslidate_cell_vcfs(self):
         vcf_dir = os.path.join(self.outdir, 'vcf')
         tmp_dir = os.path.join(self.outdir, 'tmp')
-        vcf_sample_map_file =  os.path.join(vcf_dir, 'sample_map.txt')
-        genomicsdb_work_path = os.path.join(vcf_dir, 'genomicsdb')
-        barcodes = []
+        merged_vcf_file =  os.path.join(vcf_dir, 'merged.vcf')
+        ref_txt = os.path.join(vcf_dir, 'reference_alleles.txt')
+        alt_txt = os.path.join(vcf_dir, 'alternative_alleles.txt')
+        ref_mtx = os.path.join(vcf_dir, 'reference_alleles.mtx')
+        alt_mtx = os.path.join(vcf_dir, 'alternative_alleles.mtx')
+        # genomicsdb_work_path = os.path.join(vcf_dir, 'genomicsdb')
+        vcf_files = []
 
         if not os.path.exists(genomicsdb_work_path):
             os.makedirs(genomicsdb_work_path)
@@ -1303,40 +1307,49 @@ class SCSilicon2:
         barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
         with open(barcodes_file, 'r') as output:
             for line in output.readlines():
-                barcodes.append(line.strip())
-        
-        with open(vcf_sample_map_file, 'w') as output:
-            for barcode in barcodes:
+                barcode = line.strip()
                 clone = barcode.split('_')[0]
                 clone_vcf_dir = os.path.join(vcf_dir, clone)
                 cell_snp_vcf_file = os.path.join(clone_vcf_dir, barcode+".snp.vcf.gz")
-
-                output.write('\t'.join([barcode, cell_snp_vcf_file])+'\n')
+                vcf_files.append(cell_snp_vcf_file)
         
-        # conslidate vcf files
-        logging.info('conslidate vcf files...')
-        for i in range(1, 23):
-            chrom = 'chr' + str(i)
-            chr_genomicsdb_work_path = os.path.join(genomicsdb_work_path, chrom)
-            chr_genotype_vcf_file = os.path.join(vcf_dir, 'genotype.{0}.vcf.gz'.format(chrom))
+        logging.info('merge vcf files...')
+        command = "{0} merge {1} -o {2}".format(self.bcftools_path, ' '.join(vcf_files), merged_vcf_file)
+        code = os.system(command)
 
-            command = """{0} --java-options "-Xmx4g"\
-                        GenomicsDBImport \
-                        --genomicsdb-workspace-path {1} \
-                        -L {2} \
-                        --sample-name-map {3} \
-                        --reader-threads 20""".format(self.gatk_path, chr_genomicsdb_work_path, chrom, vcf_sample_map_file)
-            code = os.system(command)
+        logging.info('extract reference and alternative_alleles...')
+        command = "{0} query -f '%CHROM\t%POS\t%REF[\t%GT]\n' {1} > {2}".format(self.bcftools_path, merged_vcf_file, ref_txt)
+        code = os.system(command)
 
-            # genotype
-            logging.info('genotyping vcf files...')
-            command = """{0} --java-options "-Xmx4g"\
-                        GenotypeGVCFs \
-                        -R {1} \
-                        -V gendb://{2} \
-                        -O {3}""".format(self.gatk_path, self.ref_genome, chr_genomicsdb_work_path, chr_genotype_vcf_file)
-            code = os.system(command)
-            break
+        command = "{0} query -f '%CHROM\t%POS\t%ALT[\t%GT]\n' {1} > {2}".format(self.bcftools_path, merged_vcf_file, alt_txt)
+        code = os.system(command)
+
+        utils.vcf_to_mtx(ref_txt, ref_mtx)
+        utils.vcf_to_mtx(alt_txt, alt_mtx)
+        # # conslidate vcf files
+        # logging.info('conslidate vcf files...')
+        # for i in range(1, 23):
+        #     chrom = 'chr' + str(i)
+        #     chr_genomicsdb_work_path = os.path.join(genomicsdb_work_path, chrom)
+        #     chr_genotype_vcf_file = os.path.join(vcf_dir, 'genotype.{0}.vcf.gz'.format(chrom))
+
+        #     command = """{0} --java-options "-Xmx4g"\
+        #                 GenomicsDBImport \
+        #                 --genomicsdb-workspace-path {1} \
+        #                 -L {2} \
+        #                 --sample-name-map {3} \
+        #                 --reader-threads 20""".format(self.gatk_path, chr_genomicsdb_work_path, chrom, vcf_sample_map_file)
+        #     code = os.system(command)
+
+        #     # genotype
+        #     logging.info('genotyping vcf files...')
+        #     command = """{0} --java-options "-Xmx4g"\
+        #                 GenotypeGVCFs \
+        #                 -R {1} \
+        #                 -V gendb://{2} \
+        #                 -O {3}""".format(self.gatk_path, self.ref_genome, chr_genomicsdb_work_path, chr_genotype_vcf_file)
+        #     code = os.system(command)
+        #     break
 
     def get_bam_coverage(self):
         self._get_chrom_sizes()
