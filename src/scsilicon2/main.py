@@ -1320,7 +1320,7 @@ class SCSilicon2:
                     GenomicsDBImport \
                     --genomicsdb-workspace-path {1} \
                     --sample-name-map {2} \
-                    --tmp-dir={3} \
+                    --tmp-dir:{3} \
                     --reader-threads 20""".format(self.gatk_path, genomicsdb_work_path, vcf_sample_map_file, tmp_dir)
         code = os.system(command)
 
