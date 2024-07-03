@@ -1320,9 +1320,6 @@ class SCSilicon2:
             chr_genomicsdb_work_path = os.path.join(genomicsdb_work_path, chrom)
             chr_genotype_vcf_file = os.path.join(vcf_dir, 'genotype.{0}.vcf.gz'.format(chrom))
 
-            if not os.path.exists(chr_genomicsdb_work_path):
-                os.makedirs(chr_genomicsdb_work_path)
-
             command = """{0} --java-options "-Xmx4g"\
                         GenomicsDBImport \
                         --genomicsdb-workspace-path {1} \
