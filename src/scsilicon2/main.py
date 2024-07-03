@@ -1257,7 +1257,7 @@ class SCSilicon2:
         if not os.path.exists(vcf_dir):
             os.makedirs(vcf_dir)
 
-        # write barcodes file
+        # read barcodes file
         profile_dir = os.path.join(self.outdir, 'profile')
         barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
         with open(barcodes_file, 'r') as output:
@@ -1287,7 +1287,52 @@ class SCSilicon2:
             command = """{0} SelectVariants -select-type SNP -R {1} -V {2} -O {3}""".format(self.gatk_path, self.ref_genome, cell_vcf_file, cell_snp_vcf_file)
             print(command)
             code = os.system(command)
-    
+            
+    def conslidate_cell_vcfs(self):
+        vcf_dir = os.path.join(self.outdir, 'vcf')
+        tmp_dir = os.path.join(self.outdir, 'tmp')
+        vcf_sample_map_file =  os.path.join(vcf_dir, 'sample_map.txt')
+        genomicsdb_work_path = os.path.join(vcf_dir, 'genomicsdb')
+        genetype_vcf_file = os.path.join(vcf_dir, 'genotype.vcf.gz')
+        barcodes = []
+
+        if not os.path.exists(genomicsdb_work_path):
+            os.makedirs(genomicsdb_work_path)
+
+        # read barcodes file
+        profile_dir = os.path.join(self.outdir, 'profile')
+        barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
+        with open(barcodes_file, 'r') as output:
+            for line in output.readlines():
+                barcodes.append(line.strip())
+        
+        with open(vcf_sample_map_file, 'w') as output:
+            for barcode in barcodes:
+                clone = barcode.split('_')[0]
+                clone_vcf_dir = os.path.join(vcf_dir, clone)
+                cell_snp_vcf_file = os.path.join(clone_vcf_dir, barcode+".snp.vcf.gz")
+
+                output.write('\t'.join(barcode, cell_snp_vcf_file)+'\n')
+        
+        # conslidate vcf files
+        logging.info('conslidate vcf files...')
+        command = """{0} --java-options "-Xmx4g"\
+                    GenomicsDBImport \
+                    --genomicsdb-workspace-path {1} \
+                    --sample-name-map {2} \
+                    --tmp-dir={3} \
+                    --reader-threads 20""".format(self.gatk_path, genomicsdb_work_path, vcf_sample_map_file, tmp_dir)
+        code = os.system(command)
+
+        # genotype
+        logging.info('genotyping vcf files...')
+        command = """{0} --java-options "-Xmx4g"\
+                    GenotypeGVCFs \
+                    -R {1} \
+                    -V gendb://{2} \
+                    -O {3}""".format(self.gatk_path, self.ref_genome, genomicsdb_work_path, genetype_vcf_file)
+        code = os.system(command)
+
     def get_bam_coverage(self):
         self._get_chrom_sizes()
         ref = self._split_chr_to_bins('all')
@@ -1356,6 +1401,8 @@ class SCSilicon2:
         # subprocess.call(cmd, shell=True)
         # cmd = 'rm {}'.format(cov_bed_fn)
         # subprocess.call(cmd, shell=True)
+
+
 
     def sim_dataset(self):
         logging.info("Start simulation process...")
