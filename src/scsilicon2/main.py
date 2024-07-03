@@ -1326,7 +1326,7 @@ class SCSilicon2:
             command = """{0} --java-options "-Xmx4g"\
                         GenomicsDBImport \
                         --genomicsdb-workspace-path {1} \
-                        -L {2}
+                        -L {2} \
                         --sample-name-map {3} \
                         --reader-threads 20""".format(self.gatk_path, chr_genomicsdb_work_path, chrom, vcf_sample_map_file)
             code = os.system(command)
