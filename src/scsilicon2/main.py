@@ -1293,7 +1293,6 @@ class SCSilicon2:
         tmp_dir = os.path.join(self.outdir, 'tmp')
         vcf_sample_map_file =  os.path.join(vcf_dir, 'sample_map.txt')
         genomicsdb_work_path = os.path.join(vcf_dir, 'genomicsdb')
-        genetype_vcf_file = os.path.join(vcf_dir, 'genotype.vcf.gz')
         barcodes = []
 
         if not os.path.exists(genomicsdb_work_path):
@@ -1316,21 +1315,30 @@ class SCSilicon2:
         
         # conslidate vcf files
         logging.info('conslidate vcf files...')
-        command = """{0} --java-options "-Xmx4g"\
-                    GenomicsDBImport \
-                    --genomicsdb-workspace-path {1} \
-                    --sample-name-map {2} \
-                    --reader-threads 20""".format(self.gatk_path, genomicsdb_work_path, vcf_sample_map_file, tmp_dir)
-        code = os.system(command)
+        for i in range(1, 23):
+            chrom = 'chr' + str(i)
+            chr_genomicsdb_work_path = os.path.join(genomicsdb_work_path, chrom)
+            chr_genotype_vcf_file = os.path.join(vcf_dir, 'genotype.{0}.vcf.gz'.format(chrom))
 
-        # genotype
-        logging.info('genotyping vcf files...')
-        command = """{0} --java-options "-Xmx4g"\
-                    GenotypeGVCFs \
-                    -R {1} \
-                    -V gendb://{2} \
-                    -O {3}""".format(self.gatk_path, self.ref_genome, genomicsdb_work_path, genetype_vcf_file)
-        code = os.system(command)
+            if not os.path.exists(chr_genomicsdb_work_path):
+                os.makedirs(chr_genomicsdb_work_path)
+
+            command = """{0} --java-options "-Xmx4g"\
+                        GenomicsDBImport \
+                        --genomicsdb-workspace-path {1} \
+                        -L {2}
+                        --sample-name-map {3} \
+                        --reader-threads 20""".format(self.gatk_path, chr_genomicsdb_work_path, chrom, vcf_sample_map_file)
+            code = os.system(command)
+
+            # genotype
+            logging.info('genotyping vcf files...')
+            command = """{0} --java-options "-Xmx4g"\
+                        GenotypeGVCFs \
+                        -R {1} \
+                        -V gendb://{2} \
+                        -O {3}""".format(self.gatk_path, self.ref_genome, chr_genomicsdb_work_path, chr_genotype_vcf_file)
+            code = os.system(command)
 
     def get_bam_coverage(self):
         self._get_chrom_sizes()
