@@ -1339,6 +1339,7 @@ class SCSilicon2:
                         -V gendb://{2} \
                         -O {3}""".format(self.gatk_path, self.ref_genome, chr_genomicsdb_work_path, chr_genotype_vcf_file)
             code = os.system(command)
+            break
 
     def get_bam_coverage(self):
         self._get_chrom_sizes()
