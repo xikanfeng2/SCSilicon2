@@ -1299,9 +1299,6 @@ class SCSilicon2:
         # genomicsdb_work_path = os.path.join(vcf_dir, 'genomicsdb')
         vcf_files = []
 
-        if not os.path.exists(genomicsdb_work_path):
-            os.makedirs(genomicsdb_work_path)
-
         # read barcodes file
         profile_dir = os.path.join(self.outdir, 'profile')
         barcodes_file = os.path.join(profile_dir, 'barcodes.txt')
