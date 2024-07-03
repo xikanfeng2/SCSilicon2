@@ -1312,7 +1312,7 @@ class SCSilicon2:
                 clone_vcf_dir = os.path.join(vcf_dir, clone)
                 cell_snp_vcf_file = os.path.join(clone_vcf_dir, barcode+".snp.vcf.gz")
 
-                output.write('\t'.join(barcode, cell_snp_vcf_file)+'\n')
+                output.write('\t'.join([barcode, cell_snp_vcf_file])+'\n')
         
         # conslidate vcf files
         logging.info('conslidate vcf files...')
