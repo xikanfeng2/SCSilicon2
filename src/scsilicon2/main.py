@@ -11,7 +11,7 @@ from collections import deque
 from glob import glob
 from multiprocessing.pool import ThreadPool as Pool
 from pathlib import Path
-from intervaltree import Interval, IntervalTree
+# from intervaltree import Interval, IntervalTree
 
 
 pd.options.mode.chained_assignment = None
